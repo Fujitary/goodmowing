@@ -303,12 +303,25 @@
           <select class="settings-select" id="setting-equip">
             <option value="kari">刈払い機 / Brush Cutter</option>
             <option value="spider">スパイダーモア / Spider Mower</option>
+            <option value="hammer">ハンマーナイフモア / Hammer Knife</option>
             <option value="hand">手押しモア / Walk-Behind</option>
             <option value="other">その他 / Other</option>
           </select>
         </div>
         <div class="settings-row">
-          <div class="settings-row-label">スパイダー機種 / Spider Model</div>
+          <div class="settings-row-label">刈払い機：メーカー</div>
+          <select class="settings-select" id="setting-kari-maker">
+            <option value="orec">オーレック</option>
+            <option value="kyoritsu">共立（やまびこ）</option>
+            <option value="honda">Honda</option>
+            <option value="kubota">クボタ</option>
+            <option value="makita">マキタ</option>
+            <option value="husq">ハスクバーナ</option>
+            <option value="other">その他</option>
+          </select>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-label">スパイダー機種</div>
           <select class="settings-select" id="setting-spider">
             <option value="SP851">オーレック SP851 (85cm)</option>
             <option value="SP852">オーレック SP852 (85cm)</option>
@@ -318,6 +331,17 @@
             <option value="SPM812">共立 SPM812 (81cm)</option>
             <option value="SZR850">クボタ SZR850 (85cm)</option>
             <option value="YSM850G">ヤンマー YSM850G (85cm)</option>
+          </select>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-label">ハンマーナイフ機種</div>
+          <select class="settings-select" id="setting-hammer">
+            <option value="HRC662">オーレック HRC662 (62cm)</option>
+            <option value="HRC802">オーレック HRC802 (80cm)</option>
+            <option value="MHR651">共立 MHR651 (65cm)</option>
+            <option value="MHR801">共立 MHR801 (80cm)</option>
+            <option value="KRC800">クボタ KRC800 (80cm)</option>
+            <option value="AM30">ゼノア AM30 (90cm)</option>
           </select>
         </div>
       </div>
@@ -386,42 +410,55 @@
 
       <div class="start-form-grid">
 
-        <!-- Equipment -->
+        <!-- ① 機材カテゴリ -->
         <div class="form-group">
           <label>機材 / Equipment</label>
-          <div class="form-select-row">
-            <button class="form-select-btn equip-btn selected" data-equip="kari">🌀 刈払い機<br><small>Brush Cutter</small></button>
-            <button class="form-select-btn equip-btn" data-equip="spider">🕷 スパイダーモア<br><small>Spider Mower</small></button>
-            <button class="form-select-btn equip-btn" data-equip="hand">🔧 手押しモア<br><small>Walk-Behind</small></button>
-            <button class="form-select-btn equip-btn" data-equip="other">⚙ その他<br><small>Other</small></button>
+          <div class="form-select-row" style="grid-template-columns:repeat(3,1fr)">
+            <button class="form-select-btn equip-btn selected" data-equip="kari" onclick="selectEquip('kari')">🌀 刈払い機<br><small>Brush Cutter</small></button>
+            <button class="form-select-btn equip-btn" data-equip="spider" onclick="selectEquip('spider')">🕷 スパイダーモア<br><small>Spider Mower</small></button>
+            <button class="form-select-btn equip-btn" data-equip="hammer" onclick="selectEquip('hammer')">🔨 ハンマーナイフ<br><small>Hammer Knife</small></button>
+            <button class="form-select-btn equip-btn" data-equip="hand" onclick="selectEquip('hand')">🔧 手押しモア<br><small>Walk-Behind</small></button>
+            <button class="form-select-btn equip-btn" data-equip="other" onclick="selectEquip('other')">⚙ その他<br><small>Other</small></button>
           </div>
         </div>
 
-        <!-- Blade type (刈払い機のみ) -->
+        <!-- ② 刈払い機：メーカー選択 -->
+        <div class="form-group" id="kari-maker-row">
+          <label>メーカー / Maker</label>
+          <div class="form-select-row" style="grid-template-columns:repeat(3,1fr)" id="kari-maker-btns"></div>
+        </div>
+
+        <!-- ③ 刈払い機：機種選択 -->
+        <div class="form-group" id="kari-model-row">
+          <label>機種 / Model</label>
+          <div class="form-select-row" style="grid-template-columns:repeat(2,1fr)" id="kari-model-btns"></div>
+        </div>
+
+        <!-- ④ 刈払い機：先端ツール -->
         <div class="form-group" id="blade-row">
           <label>先端ツール / Blade Type</label>
           <div class="form-select-row">
-            <button class="form-select-btn blade-btn selected" data-blade="chip255">🔵 チップソー 255mm</button>
-            <button class="form-select-btn blade-btn" data-blade="chip230">🔵 チップソー 230mm</button>
-            <button class="form-select-btn blade-btn" data-blade="nylon">🟡 ナイロンコード</button>
-            <button class="form-select-btn blade-btn" data-blade="grass">🟢 草刈刃</button>
+            <button class="form-select-btn blade-btn selected" data-blade="chip255" onclick="selectBlade('chip255')">🔵 チップソー 255mm</button>
+            <button class="form-select-btn blade-btn" data-blade="chip230" onclick="selectBlade('chip230')">🔵 チップソー 230mm</button>
+            <button class="form-select-btn blade-btn" data-blade="nylon" onclick="selectBlade('nylon')">🟡 ナイロンコード</button>
+            <button class="form-select-btn blade-btn" data-blade="grass" onclick="selectBlade('grass')">🟢 草刈刃</button>
           </div>
         </div>
 
-        <!-- Spider model (スパイダーのみ) -->
+        <!-- ② スパイダーモア：機種選択 -->
         <div class="form-group hidden" id="spider-model-row">
           <label>機種 / Model</label>
-          <select class="form-input" id="spider-model-select">
-            <option value="SP851">オーレック SP851 (85cm) — デフォルト</option>
-            <option value="SP852">オーレック SP852 (85cm)</option>
-            <option value="SMP60">オーレック SMP60 (60cm)</option>
-            <option value="SMP80">オーレック SMP80 (80cm)</option>
-            <option value="SPM710">共立 SPM710 (71cm)</option>
-            <option value="SPM812">共立 SPM812 (81cm)</option>
-            <option value="SZR850">クボタ SZR850 (85cm)</option>
-            <option value="YSM850G">ヤンマー YSM850G (85cm)</option>
-          </select>
+          <div class="form-select-row" style="grid-template-columns:repeat(2,1fr)" id="spider-model-btns"></div>
         </div>
+
+        <!-- ② ハンマーナイフ：機種選択 -->
+        <div class="form-group hidden" id="hammer-model-row">
+          <label>機種 / Model</label>
+          <div class="form-select-row" style="grid-template-columns:repeat(2,1fr)" id="hammer-model-btns"></div>
+        </div>
+
+        <!-- 機種サマリー（選択確認） -->
+        <div id="model-summary" style="font-size:11px;color:var(--neon);padding:2px 2px 0;min-height:18px;font-weight:700;letter-spacing:.02em"></div>
 
         <!-- Terrain -->
         <div class="form-group">

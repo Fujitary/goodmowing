@@ -34,22 +34,93 @@ const TERRAIN = {
 };
 
 const EQUIP = {
-  kari:    { label: '刈払い機', labelEn: 'Brush Cutter', met: 4.5, bladeW: 0.90, eff: 0.75 },
-  spider:  { label: 'スパイダーモア', labelEn: 'Spider Mower', met: 3.0, bladeW: null, eff: 0.90 },
-  hand:    { label: '手押しモア', labelEn: 'Walk-Behind', met: 3.5, bladeW: 0.55, eff: 0.88 },
-  other:   { label: 'その他', labelEn: 'Other', met: 3.0, bladeW: 0.80, eff: 0.80 },
+  kari:    { label: '刈払い機',       labelEn: 'Brush Cutter',   met: 4.5, bladeW: 0.90, eff: 0.75 },
+  spider:  { label: 'スパイダーモア', labelEn: 'Spider Mower',   met: 3.0, bladeW: null, eff: 0.90 },
+  hammer:  { label: 'ハンマーナイフモア', labelEn: 'Hammer Knife', met: 3.2, bladeW: null, eff: 0.92 },
+  hand:    { label: '手押しモア',     labelEn: 'Walk-Behind',    met: 3.5, bladeW: 0.55, eff: 0.88 },
+  other:   { label: 'その他',         labelEn: 'Other',          met: 3.0, bladeW: 0.80, eff: 0.80 },
 };
 
-const SPIDER_MODELS = {
-  'SP851': 0.85, 'SP852': 0.85, 'SMP60': 0.60, 'SMP80': 0.80,
-  'SPM710': 0.71, 'SPM812': 0.81, 'SZR850': 0.85, 'YSM850G': 0.85, 'custom': null,
+// 刈払い機：メーカー別モデル一覧
+const KARI_MAKERS = {
+  orec:     { label: 'オーレック',   labelEn: 'OREC' },
+  kyoritsu: { label: '共立(やまびこ)', labelEn: 'Kyoritsu' },
+  honda:    { label: 'Honda',        labelEn: 'Honda' },
+  kubota:   { label: 'クボタ',       labelEn: 'Kubota' },
+  makita:   { label: 'マキタ',       labelEn: 'Makita' },
+  husq:     { label: 'ハスクバーナ', labelEn: 'Husqvarna' },
+  other:    { label: 'その他',       labelEn: 'Other' },
 };
+
+const KARI_MODELS = {
+  orec:     [
+    { id: 'WM716', label: 'WM716（26cc）', bladeW: 0.90 },
+    { id: 'WM721', label: 'WM721（21cc）', bladeW: 0.90 },
+    { id: 'BC2611', label: 'BC2611（26cc）', bladeW: 0.90 },
+    { id: 'orec_other', label: 'その他オーレック', bladeW: 0.90 },
+  ],
+  kyoritsu: [
+    { id: 'RME262', label: 'RME262（26cc）', bladeW: 0.90 },
+    { id: 'RME231', label: 'RME231（23cc）', bladeW: 0.90 },
+    { id: 'RME2650', label: 'RME2650（26cc）', bladeW: 0.90 },
+    { id: 'kyoritsu_other', label: 'その他共立', bladeW: 0.90 },
+  ],
+  honda:    [
+    { id: 'UMK425', label: 'UMK425（25cc）', bladeW: 0.90 },
+    { id: 'UMK435', label: 'UMK435（35cc）', bladeW: 0.90 },
+    { id: 'honda_other', label: 'その他Honda', bladeW: 0.90 },
+  ],
+  kubota:   [
+    { id: 'ARS500', label: 'ARS500（50cc）', bladeW: 0.90 },
+    { id: 'kubota_other', label: 'その他クボタ', bladeW: 0.90 },
+  ],
+  makita:   [
+    { id: 'MEM2600', label: 'MEM2600（26cc）', bladeW: 0.90 },
+    { id: 'MEM3401', label: 'MEM3401（34cc）', bladeW: 0.90 },
+    { id: 'makita_other', label: 'その他マキタ', bladeW: 0.90 },
+  ],
+  husq:     [
+    { id: '135R', label: '135R（35cc）', bladeW: 0.90 },
+    { id: '545RX', label: '545RX（45cc）', bladeW: 0.90 },
+    { id: 'husq_other', label: 'その他ハスクバーナ', bladeW: 0.90 },
+  ],
+  other:    [
+    { id: 'kari_custom', label: 'その他（手動入力）', bladeW: 0.90 },
+  ],
+};
+
+// スパイダーモア機種
+const SPIDER_MODELS_LIST = [
+  { id: 'SP851',   label: 'オーレック SP851',   bladeW: 0.85 },
+  { id: 'SP852',   label: 'オーレック SP852',   bladeW: 0.85 },
+  { id: 'SMP60',   label: 'オーレック SMP60',   bladeW: 0.60 },
+  { id: 'SMP80',   label: 'オーレック SMP80',   bladeW: 0.80 },
+  { id: 'SPM710',  label: '共立 SPM710',        bladeW: 0.71 },
+  { id: 'SPM812',  label: '共立 SPM812',        bladeW: 0.81 },
+  { id: 'SZR850',  label: 'クボタ SZR850',      bladeW: 0.85 },
+  { id: 'YSM850G', label: 'ヤンマー YSM850G',  bladeW: 0.85 },
+  { id: 'spider_custom', label: 'その他（手動入力）', bladeW: 0.85 },
+];
+
+// ハンマーナイフモア機種
+const HAMMER_MODELS_LIST = [
+  { id: 'HRC662',  label: 'オーレック HRC662（62cm）', bladeW: 0.62 },
+  { id: 'HRC802',  label: 'オーレック HRC802（80cm）', bladeW: 0.80 },
+  { id: 'MHR651',  label: '共立 MHR651（65cm）',      bladeW: 0.65 },
+  { id: 'MHR801',  label: '共立 MHR801（80cm）',      bladeW: 0.80 },
+  { id: 'KRC800',  label: 'クボタ KRC800（80cm）',    bladeW: 0.80 },
+  { id: 'AM30',    label: 'ゼノア AM30（90cm）',       bladeW: 0.90 },
+  { id: 'hammer_custom', label: 'その他（手動入力）',  bladeW: 0.80 },
+];
+
+// 後方互換のため残す
+const SPIDER_MODELS = Object.fromEntries(SPIDER_MODELS_LIST.map(m => [m.id, m.bladeW]));
 
 const BLADE_TYPES = {
   chip255: { label: 'チップソー 255mm', labelEn: 'Chip Saw 255mm' },
   chip230: { label: 'チップソー 230mm', labelEn: 'Chip Saw 230mm' },
-  nylon:   { label: 'ナイロンコード', labelEn: 'Nylon Cord' },
-  grass:   { label: '草刈刃', labelEn: 'Grass Blade' },
+  nylon:   { label: 'ナイロンコード',   labelEn: 'Nylon Cord' },
+  grass:   { label: '草刈刃',           labelEn: 'Grass Blade' },
 };
 
 const BADGES_DEF = [
@@ -91,8 +162,16 @@ const state = {
   elapsedSec: 0,
   terrain: 'flat',
   equipment: 'kari',
+  // 刈払い機
+  kariMaker: 'orec',
+  kariModel: 'WM716',
   bladeType: 'chip255',
+  // スパイダー
   spiderModel: 'SP851',
+  // ハンマーナイフ
+  hammerModel: 'HRC662',
+  // 共通
+  modelBladeW: 0.90,
   targetSpotId: null,
   spotName: '',
   weather: '',
@@ -167,6 +246,22 @@ function recordCardHTML(r) {
   const eq = EQUIP[r.equipment] || EQUIP.other;
   const te = TERRAIN[r.terrain] || TERRAIN.flat;
   const areaA = (r.area / 100).toFixed(1);
+
+  // 機種ラベルを組み立て
+  let modelLabel = eq.label;
+  if (r.equipment === 'spider' && r.spiderModel) {
+    const m = SPIDER_MODELS_LIST.find(x => x.id === r.spiderModel);
+    if (m) modelLabel = m.label;
+  } else if (r.equipment === 'hammer' && r.hammerModel) {
+    const m = HAMMER_MODELS_LIST.find(x => x.id === r.hammerModel);
+    if (m) modelLabel = m.label;
+  } else if (r.equipment === 'kari' && r.kariMaker && r.kariModel) {
+    const maker = KARI_MAKERS[r.kariMaker]?.label || '';
+    const models = KARI_MODELS[r.kariMaker] || [];
+    const model = models.find(m => m.id === r.kariModel);
+    if (model) modelLabel = `${maker} ${model.label}`;
+  }
+
   return `<div class="record-card" onclick="showRecordDetail('${r.id}')">
     <div class="record-date"><div class="day">${day}</div><div class="mon">${mon}</div></div>
     <div class="record-divider"></div>
@@ -174,7 +269,7 @@ function recordCardHTML(r) {
       <div class="record-spot">${escHtml(r.spotName || '作業記録')}</div>
       <div class="record-tags">
         <span class="tag tag-orange">${te.icon} ${te.label} ${te.stars}</span>
-        <span class="tag tag-green">${eq.label}</span>
+        <span class="tag tag-green">${modelLabel}</span>
         ${r.gpsEnabled ? '<span class="tag tag-sky">GPS</span>' : ''}
       </div>
     </div>
@@ -249,11 +344,15 @@ function closeStartModal() { qs('#modal-start').classList.remove('open'); }
 
 function renderStartModal() {
   const profile = DB.profile();
-  state.equipment = profile.defaultEquip || 'kari';
-  state.spiderModel = profile.defaultSpider || 'SP851';
-  state.terrain = 'flat';
-  state.bladeType = 'chip255';
+  state.equipment   = profile.defaultEquip   || 'kari';
+  state.kariMaker   = profile.defaultKariMaker || 'orec';
+  state.kariModel   = profile.defaultKariModel || 'WM716';
+  state.spiderModel = profile.defaultSpider  || 'SP851';
+  state.hammerModel = profile.defaultHammer  || 'HRC662';
+  state.terrain     = 'flat';
+  state.bladeType   = 'chip255';
   state.targetSpotId = null;
+  state.modelBladeW  = getModelBladeW();
 
   updateEquipUI();
   updateTerrainUI();
@@ -270,14 +369,142 @@ function renderStartModal() {
   qs('#slope-hint').classList.add('hidden');
 }
 
+function getModelBladeW() {
+  if (state.equipment === 'spider') {
+    return (SPIDER_MODELS_LIST.find(m => m.id === state.spiderModel) || SPIDER_MODELS_LIST[0]).bladeW;
+  }
+  if (state.equipment === 'hammer') {
+    return (HAMMER_MODELS_LIST.find(m => m.id === state.hammerModel) || HAMMER_MODELS_LIST[0]).bladeW;
+  }
+  if (state.equipment === 'kari') {
+    const models = KARI_MODELS[state.kariMaker] || KARI_MODELS.other;
+    return (models.find(m => m.id === state.kariModel) || models[0]).bladeW;
+  }
+  return EQUIP[state.equipment]?.bladeW || 0.80;
+}
+
 function selectEquip(eq) {
   state.equipment = eq;
+  // デフォルト機種をセット
+  if (eq === 'spider')  state.spiderModel = state.spiderModel || 'SP851';
+  if (eq === 'hammer')  state.hammerModel = state.hammerModel || 'HRC662';
+  if (eq === 'kari') {
+    state.kariMaker = state.kariMaker || 'orec';
+    state.kariModel = (KARI_MODELS[state.kariMaker]?.[0]?.id) || 'WM716';
+  }
+  state.modelBladeW = getModelBladeW();
   updateEquipUI();
 }
+
 function updateEquipUI() {
-  document.querySelectorAll('.equip-btn').forEach(b => b.classList.toggle('selected', b.dataset.equip === state.equipment));
-  qs('#spider-model-row').classList.toggle('hidden', state.equipment !== 'spider');
+  document.querySelectorAll('.equip-btn').forEach(b =>
+    b.classList.toggle('selected', b.dataset.equip === state.equipment));
+
+  // 各機材の追加選択行の表示切替
+  qs('#kari-maker-row').classList.toggle('hidden', state.equipment !== 'kari');
+  qs('#kari-model-row').classList.toggle('hidden', state.equipment !== 'kari');
   qs('#blade-row').classList.toggle('hidden', state.equipment !== 'kari');
+  qs('#spider-model-row').classList.toggle('hidden', state.equipment !== 'spider');
+  qs('#hammer-model-row').classList.toggle('hidden', state.equipment !== 'hammer');
+
+  // 刈払い機：メーカーボタン更新
+  if (state.equipment === 'kari') {
+    renderKariMakerBtns();
+    renderKariModelBtns();
+  }
+  // スパイダー：機種リスト更新
+  if (state.equipment === 'spider') renderSpiderModelBtns();
+  // ハンマー：機種リスト更新
+  if (state.equipment === 'hammer') renderHammerModelBtns();
+
+  updateModelLabel();
+}
+
+function renderKariMakerBtns() {
+  const wrap = qs('#kari-maker-btns');
+  wrap.innerHTML = Object.entries(KARI_MAKERS).map(([k, m]) =>
+    `<button class="form-select-btn maker-btn${state.kariMaker === k ? ' selected' : ''}"
+      data-maker="${k}" onclick="selectKariMaker('${k}')">${m.label}</button>`
+  ).join('');
+}
+
+function renderKariModelBtns() {
+  const models = KARI_MODELS[state.kariMaker] || KARI_MODELS.other;
+  const wrap = qs('#kari-model-btns');
+  wrap.innerHTML = models.map(m =>
+    `<button class="form-select-btn model-btn${state.kariModel === m.id ? ' selected' : ''}"
+      data-model="${m.id}" onclick="selectKariModel('${m.id}')">${m.label}</button>`
+  ).join('');
+}
+
+function renderSpiderModelBtns() {
+  const wrap = qs('#spider-model-btns');
+  wrap.innerHTML = SPIDER_MODELS_LIST.map(m =>
+    `<button class="form-select-btn smodel-btn${state.spiderModel === m.id ? ' selected' : ''}"
+      data-model="${m.id}" onclick="selectSpiderModel('${m.id}')">${m.label}（${(m.bladeW*100).toFixed(0)}cm）</button>`
+  ).join('');
+}
+
+function renderHammerModelBtns() {
+  const wrap = qs('#hammer-model-btns');
+  wrap.innerHTML = HAMMER_MODELS_LIST.map(m =>
+    `<button class="form-select-btn hmodel-btn${state.hammerModel === m.id ? ' selected' : ''}"
+      data-model="${m.id}" onclick="selectHammerModel('${m.id}')">${m.label}</button>`
+  ).join('');
+}
+
+function selectKariMaker(maker) {
+  state.kariMaker = maker;
+  // そのメーカーの最初のモデルを自動選択
+  state.kariModel = KARI_MODELS[maker]?.[0]?.id || 'kari_custom';
+  state.modelBladeW = getModelBladeW();
+  renderKariMakerBtns();
+  renderKariModelBtns();
+  updateModelLabel();
+}
+
+function selectKariModel(modelId) {
+  state.kariModel = modelId;
+  state.modelBladeW = getModelBladeW();
+  document.querySelectorAll('.model-btn').forEach(b =>
+    b.classList.toggle('selected', b.dataset.model === modelId));
+  updateModelLabel();
+}
+
+function selectSpiderModel(modelId) {
+  state.spiderModel = modelId;
+  state.modelBladeW = getModelBladeW();
+  document.querySelectorAll('.smodel-btn').forEach(b =>
+    b.classList.toggle('selected', b.dataset.model === modelId));
+  updateModelLabel();
+}
+
+function selectHammerModel(modelId) {
+  state.hammerModel = modelId;
+  state.modelBladeW = getModelBladeW();
+  document.querySelectorAll('.hmodel-btn').forEach(b =>
+    b.classList.toggle('selected', b.dataset.model === modelId));
+  updateModelLabel();
+}
+
+function updateModelLabel() {
+  const el = qs('#model-summary');
+  if (!el) return;
+  const eq = EQUIP[state.equipment];
+  let detail = '';
+  if (state.equipment === 'kari') {
+    const maker = KARI_MAKERS[state.kariMaker]?.label || '';
+    const models = KARI_MODELS[state.kariMaker] || [];
+    const model = models.find(m => m.id === state.kariModel);
+    detail = `${maker} ${model?.label || ''} ／ 刈幅 ${(state.modelBladeW*100).toFixed(0)}cm`;
+  } else if (state.equipment === 'spider') {
+    const m = SPIDER_MODELS_LIST.find(x => x.id === state.spiderModel);
+    detail = `${m?.label || ''} ／ 刈幅 ${(state.modelBladeW*100).toFixed(0)}cm`;
+  } else if (state.equipment === 'hammer') {
+    const m = HAMMER_MODELS_LIST.find(x => x.id === state.hammerModel);
+    detail = `${m?.label || ''} ／ 刈幅 ${(state.modelBladeW*100).toFixed(0)}cm`;
+  }
+  el.textContent = detail ? `✓ ${detail}` : '';
 }
 
 function selectBlade(bt) {
@@ -361,7 +588,24 @@ function beginSession() {
 function renderWorkScreen() {
   const eq = EQUIP[state.equipment];
   const te = TERRAIN[state.terrain];
-  qs('#work-equipment-label').textContent = `${eq.label} / ${te.label} ${te.stars}`;
+
+  // 機種詳細ラベルを組み立て
+  let modelDetail = '';
+  if (state.equipment === 'kari') {
+    const maker = KARI_MAKERS[state.kariMaker]?.label || '';
+    const models = KARI_MODELS[state.kariMaker] || [];
+    const model = models.find(m => m.id === state.kariModel);
+    modelDetail = model ? ` ${maker} ${model.label}` : '';
+  } else if (state.equipment === 'spider') {
+    const m = SPIDER_MODELS_LIST.find(x => x.id === state.spiderModel);
+    modelDetail = m ? ` ${m.label}` : '';
+  } else if (state.equipment === 'hammer') {
+    const m = HAMMER_MODELS_LIST.find(x => x.id === state.hammerModel);
+    modelDetail = m ? ` ${m.label}` : '';
+  }
+
+  qs('#work-equipment-label').textContent =
+    `${eq.label}${modelDetail} ／ ${te.label} ${te.stars}`;
 
   // Terrain grid
   const grid = qs('#work-terrain-grid');
@@ -412,7 +656,7 @@ function updateWorkMetrics() {
   // Area from GPS or estimate
   let areaM2 = 0;
   if (state.gpsEnabled && state.gpsDist > 0) {
-    const bladeW = eq.bladeW || (SPIDER_MODELS[state.spiderModel] || 0.85);
+    const bladeW = state.modelBladeW || eq.bladeW || 0.85;
     areaM2 = state.gpsDist * bladeW * eq.eff;
   }
 
@@ -486,7 +730,7 @@ function endWork() {
   // Final area calc
   let areaM2 = 0;
   if (state.gpsEnabled && state.gpsDist > 0) {
-    const bw = eq.bladeW || (SPIDER_MODELS[state.spiderModel] || 0.85);
+    const bw = state.modelBladeW || eq.bladeW || 0.85;
     areaM2 = Math.round(state.gpsDist * bw * eq.eff);
   }
 
@@ -500,8 +744,13 @@ function endWork() {
     endTime: new Date().toISOString(),
     workDuration: state.elapsedSec,
     equipment: state.equipment,
-    bladeType: state.bladeType,
+    equipmentLabel: EQUIP[state.equipment]?.label || state.equipment,
+    kariMaker: state.equipment === 'kari' ? state.kariMaker : null,
+    kariModel: state.equipment === 'kari' ? state.kariModel : null,
     spiderModel: state.equipment === 'spider' ? state.spiderModel : null,
+    hammerModel: state.equipment === 'hammer' ? state.hammerModel : null,
+    modelBladeW: state.modelBladeW,
+    bladeType: state.bladeType,
     terrain: state.terrain,
     terrainFactor: te.factor,
     area: areaM2,
@@ -906,19 +1155,23 @@ function exportCSV() {
 ───────────────────────────────────── */
 function renderSettings() {
   const p = DB.profile();
-  qs('#setting-name').value     = p.name || '';
-  qs('#setting-weight').value   = p.weight || 60;
-  qs('#setting-equip').value    = p.defaultEquip || 'kari';
-  qs('#setting-spider').value   = p.defaultSpider || 'SP851';
+  qs('#setting-name').value       = p.name || '';
+  qs('#setting-weight').value     = p.weight || 60;
+  qs('#setting-equip').value      = p.defaultEquip || 'kari';
+  qs('#setting-kari-maker').value = p.defaultKariMaker || 'orec';
+  qs('#setting-spider').value     = p.defaultSpider || 'SP851';
+  qs('#setting-hammer').value     = p.defaultHammer || 'HRC662';
   qs('#setting-badges').textContent = `${DB.badges().length} / ${BADGES_DEF.length} 獲得`;
 }
 
 function saveSettings() {
   const p = {
-    name:          qs('#setting-name').value.trim() || 'ユーザー',
-    weight:        parseFloat(qs('#setting-weight').value) || 60,
-    defaultEquip:  qs('#setting-equip').value,
-    defaultSpider: qs('#setting-spider').value,
+    name:             qs('#setting-name').value.trim() || 'ユーザー',
+    weight:           parseFloat(qs('#setting-weight').value) || 60,
+    defaultEquip:     qs('#setting-equip').value,
+    defaultKariMaker: qs('#setting-kari-maker').value,
+    defaultSpider:    qs('#setting-spider').value,
+    defaultHammer:    qs('#setting-hammer').value,
   };
   DB.saveProfile(p);
   showToast('✓ 設定を保存しました / Saved');
@@ -1014,7 +1267,7 @@ function showToast(msg) {
 document.addEventListener('DOMContentLoaded', () => {
   // PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
 
   // Nav
@@ -1035,9 +1288,6 @@ document.addEventListener('DOMContentLoaded', () => {
   qsa('.equip-btn').forEach(b => b.addEventListener('click', () => selectEquip(b.dataset.equip)));
   qsa('.blade-btn').forEach(b => b.addEventListener('click', () => selectBlade(b.dataset.blade)));
   qsa('.modal-terrain-btn').forEach(b => b.addEventListener('click', () => selectModalTerrain(b.dataset.terrain)));
-
-  // Spider model
-  qs('#spider-model-select')?.addEventListener('change', e => { state.spiderModel = e.target.value; });
 
   // Work controls
   qs('#btn-pause').addEventListener('click', togglePause);

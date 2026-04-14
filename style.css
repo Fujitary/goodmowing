@@ -756,6 +756,13 @@ svg { display: block; }
 .bebas { font-family: 'Bebas Neue'; }
 .hidden { display: none !important; }
 
+/* maker / model buttons — same style as form-select-btn, smaller text */
+.maker-btn, .model-btn, .smodel-btn, .hmodel-btn {
+  font-size: 11px !important;
+  padding: 8px 6px !important;
+  line-height: 1.4;
+}
+
 /* ── Responsive fine-tune ── */
 @media (max-height: 700px) {
   .timer-ring-container { width: 180px; height: 180px; }
