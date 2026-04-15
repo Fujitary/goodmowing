@@ -187,6 +187,10 @@ const state = {
   lastGpsPoint: null,
   // result
   lastRecord: null,
+  // new spot temp
+  newSpotLat: null,
+  newSpotLon: null,
+  newSpotColor: '#9ee840',
 };
 
 let timerInterval = null;
@@ -195,6 +199,10 @@ let timerInterval = null;
    ROUTER
 ───────────────────────────────────── */
 function navigate(screen) {
+  // 地図から離れるときLiveトラッキング停止（作業中は継続）
+  if (state.screen === 'map' && screen !== 'map' && !state.working) {
+    stopLiveTracking();
+  }
   state.screen = screen;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -523,8 +531,53 @@ function updateTerrainUI() {
 
 function selectSpot(id) {
   state.targetSpotId = id;
-  document.querySelectorAll('.spot-option').forEach(o => o.classList.toggle('selected', o.dataset.id === id));
+  state.newSpotLat = null;
+  state.newSpotLon = null;
+  state.newSpotColor = '#9ee840';
+  document.querySelectorAll('.spot-option').forEach(o =>
+    o.classList.toggle('selected', o.dataset.id === id));
   qs('#new-spot-row').classList.toggle('hidden', id !== 'new');
+  if (id === 'new') {
+    qs('#location-status').textContent = '';
+    qs('#btn-attach-location').style.borderColor = 'rgba(158,232,64,.3)';
+    qs('#btn-attach-location').style.color = 'var(--neon)';
+  }
+}
+
+function selectSpotColor(color) {
+  state.newSpotColor = color;
+  document.querySelectorAll('.spot-color-opt').forEach(el => {
+    el.style.border = el.dataset.color === color ? '2px solid white' : '2px solid transparent';
+  });
+}
+
+async function attachCurrentLocation() {
+  const btn = qs('#btn-attach-location');
+  const status = qs('#location-status');
+  btn.textContent = '📡 位置情報を取得中…';
+  btn.style.opacity = '.6';
+  status.textContent = '';
+
+  try {
+    const pos = await getPosition();
+    const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+    state.newSpotLat = lat;
+    state.newSpotLon = lon;
+
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 📍 位置情報を登録しました`;
+    btn.style.background = 'rgba(158,232,64,.2)';
+    btn.style.borderColor = 'rgba(158,232,64,.7)';
+    btn.style.opacity = '1';
+    status.textContent = `緯度 ${lat.toFixed(5)} / 経度 ${lon.toFixed(5)} ／ 精度 ±${Math.round(accuracy)}m`;
+    status.style.color = 'var(--lime)';
+  } catch (e) {
+    btn.innerHTML = `⚠️ 位置情報の取得に失敗しました`;
+    btn.style.opacity = '1';
+    btn.style.borderColor = 'rgba(217,79,42,.4)';
+    btn.style.color = 'var(--danger)';
+    status.textContent = '設定 → プライバシー → 位置情報サービスを確認してください';
+    status.style.color = 'rgba(255,255,255,.35)';
+  }
 }
 
 function updateSafetyHint() {
@@ -550,16 +603,24 @@ function startWork() {
   state.spotName = spotName || (DB.spots().find(s => s.id === state.targetSpotId)?.name || '作業記録');
 
   if (state.targetSpotId === 'new' && spotName) {
+    const freq = parseInt(qs('#new-spot-freq')?.value || '3', 10);
     const newSpot = {
       id: `spot_${Date.now()}`,
-      name: spotName, color: '#9ee840',
-      targetFreq: 3, terrain: state.terrain, area: 0,
-      lastMowed: null, memo: '',
+      name: spotName,
+      color: state.newSpotColor || '#9ee840',
+      targetFreq: freq,
+      terrain: state.terrain,
+      area: 0,
+      lat: state.newSpotLat,   // null のときは地図表示なし（後で更新可）
+      lon: state.newSpotLon,
+      lastMowed: null,
+      memo: '',
     };
     const spots = DB.spots();
     spots.push(newSpot);
     DB.saveSpots(spots);
     state.targetSpotId = newSpot.id;
+    if (newSpot.lat) showToast(`📍 「${spotName}」の位置情報を登録しました`);
   }
 
   closeStartModal();
@@ -763,17 +824,28 @@ function endWork() {
     spotName: state.spotName,
     memo: '',
     gpsEnabled: state.gpsEnabled,
+    gpsPoints: state.gpsEnabled ? state.gpsPoints.slice(-500) : [], // 最大500点
     gpsDist: Math.round(state.gpsDist),
     gpsArea: areaM2,
     gpsSamples: state.gpsPoints.length,
     badges: [],
   };
 
-  // Update spot lastMowed
+  // Update spot lastMowed & 位置情報（未登録の場合のみ自動付与）
   if (state.targetSpotId && state.targetSpotId !== 'new') {
     const spots = DB.spots();
     const sp = spots.find(s => s.id === state.targetSpotId);
-    if (sp) { sp.lastMowed = record.date; DB.saveSpots(spots); }
+    if (sp) {
+      sp.lastMowed = record.date;
+      // GPS有効かつ位置未登録 → 最初のGPS点を位置として登録
+      if (state.gpsEnabled && state.gpsPoints.length > 0 && !sp.lat) {
+        const firstPt = state.gpsPoints[0];
+        sp.lat = firstPt.lat;
+        sp.lon = firstPt.lon;
+        showToast(`📍 「${sp.name}」に位置情報を自動登録しました`);
+      }
+      DB.saveSpots(spots);
+    }
   }
 
   DB.saveRecord(record);
@@ -956,85 +1028,255 @@ function checkStreak(records, days) {
 /* ─────────────────────────────────────
    MAP
 ───────────────────────────────────── */
+/* ─────────────────────────────────────
+   LEAFLET MAP
+───────────────────────────────────── */
+
+let leafletMap = null;        // Leaflet map instance
+let liveMarker = null;        // 現在地マーカー
+let liveAccCircle = null;     // 精度円
+let liveTrailPolyline = null; // リアルタイム軌跡
+let liveTrailCoords = [];     // 軌跡座標バッファ
+let mowedLayers = [];         // 刈取ポリゴン/ポリライン層
+let mapFilter = 'all';        // 'all' | 'month' | 'live'
+let watchLiveId = null;       // geolocation watch ID (map画面用)
+
+// Leaflet カスタム現在地アイコン
+function makeLiveDotIcon() {
+  return L.divIcon({
+    className: '',
+    html: '<div class="live-dot"></div>',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+  });
+}
+
+function initLeafletMap() {
+  if (leafletMap) return; // 既に初期化済み
+
+  leafletMap = L.map('leaflet-map', {
+    zoomControl: false,
+    attributionControl: true,
+  }).setView([35.07, 133.92], 15); // 真庭市付近を初期表示
+
+  // 国土地理院 標準地図タイル（日本語・無料）
+  L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>',
+    maxZoom: 18,
+    opacity: 1.0,
+  }).addTo(leafletMap);
+
+  // ズームコントロール（右下）
+  L.control.zoom({ position: 'bottomright' }).addTo(leafletMap);
+
+  // 地図タップで現在地取得
+  leafletMap.on('click', () => {});
+}
+
 function renderMap() {
-  renderMapSVG();
+  initLeafletMap();
   renderMapStats();
   renderCalendar();
   renderSpotList();
+  drawMowedPolygons();
+  startLiveTracking();
+
+  // 地図サイズを正しく再計算（画面切り替え後に必要）
+  setTimeout(() => leafletMap && leafletMap.invalidateSize(), 120);
 }
 
-function renderMapSVG() {
-  // Draw a SVG map of Maniwa area with polygons from records
-  const svg = qs('#map-svg');
+function setMapFilter(f) {
+  mapFilter = f;
+  ['all','month','live'].forEach(k => {
+    const el = qs(`#filter-${k}`);
+    if (el) el.classList.toggle('active', k === f);
+  });
+  drawMowedPolygons();
+  if (f === 'live') startLiveTracking();
+}
+
+/* ── 現在地追跡（地図画面用） ── */
+function startLiveTracking() {
+  if (!('geolocation' in navigator)) return;
+  if (watchLiveId !== null) return; // 既に起動中
+
+  watchLiveId = navigator.geolocation.watchPosition(
+    pos => onLiveMapUpdate(pos),
+    err => {},
+    { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
+  );
+}
+
+function stopLiveTracking() {
+  if (watchLiveId !== null) {
+    navigator.geolocation.clearWatch(watchLiveId);
+    watchLiveId = null;
+  }
+  liveTrailCoords = [];
+}
+
+function onLiveMapUpdate(pos) {
+  const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+  if (!leafletMap) return;
+
+  const latlng = [lat, lon];
+
+  // 精度円
+  if (liveAccCircle) {
+    liveAccCircle.setLatLng(latlng).setRadius(accuracy);
+  } else {
+    liveAccCircle = L.circle(latlng, {
+      radius: accuracy,
+      className: 'live-accuracy-circle',
+      weight: 1.5,
+    }).addTo(leafletMap);
+  }
+
+  // 現在地ドット
+  if (liveMarker) {
+    liveMarker.setLatLng(latlng);
+  } else {
+    liveMarker = L.marker(latlng, { icon: makeLiveDotIcon(), zIndexOffset: 1000 })
+      .addTo(leafletMap)
+      .bindPopup(`<b>現在地</b><br>精度 ±${Math.round(accuracy)}m`);
+
+    // 初回だけ現在地にフォーカス
+    leafletMap.setView(latlng, 17);
+  }
+
+  // リアルタイム軌跡（作業中のみ）
+  if (state.working && !state.paused && accuracy <= 25) {
+    liveTrailCoords.push(latlng);
+    if (liveTrailPolyline) {
+      liveTrailPolyline.setLatLngs(liveTrailCoords);
+    } else if (liveTrailCoords.length >= 2) {
+      liveTrailPolyline = L.polyline(liveTrailCoords, {
+        color: '#9ee840',
+        weight: 4,
+        opacity: 0.85,
+        lineJoin: 'round',
+        lineCap: 'round',
+        dashArray: null,
+      }).addTo(leafletMap);
+    }
+  }
+}
+
+function locateMe() {
+  if (!leafletMap) return;
+  if (liveMarker) {
+    leafletMap.setView(liveMarker.getLatLng(), 17);
+  } else {
+    navigator.geolocation.getCurrentPosition(pos => {
+      leafletMap.setView([pos.coords.latitude, pos.coords.longitude], 17);
+    }, () => showToast('位置情報を取得できませんでした'));
+  }
+}
+
+/* ── 刈取ポリゴン描画 ── */
+function drawMowedPolygons() {
+  if (!leafletMap) return;
+
+  // 既存レイヤーを削除
+  mowedLayers.forEach(l => leafletMap.removeLayer(l));
+  mowedLayers = [];
+
   const records = DB.records();
-
-  // Fixed base map (Maniwa/Yono area)
-  let html = `
-  <!-- ground -->
-  <rect width="350" height="260" fill="#1c2e10"/>
-  <!-- rice fields -->
-  <rect x="52" y="90" width="78" height="62" rx="3" fill="#223c14" stroke="#2a4a18" stroke-width="1"/>
-  <line x1="52" y1="111" x2="130" y2="111" stroke="#2a4a18" stroke-width=".8"/>
-  <line x1="52" y1="130" x2="130" y2="130" stroke="#2a4a18" stroke-width=".8"/>
-  <line x1="78" y1="90" x2="78" y2="152" stroke="#2a4a18" stroke-width=".8"/>
-  <line x1="104" y1="90" x2="104" y2="152" stroke="#2a4a18" stroke-width=".8"/>
-  <!-- forest -->
-  <ellipse cx="272" cy="50" rx="62" ry="50" fill="#172808" opacity=".88"/>
-  <ellipse cx="300" cy="70" rx="46" ry="38" fill="#132005" opacity=".82"/>
-  <ellipse cx="48" cy="32" rx="52" ry="36" fill="#172808" opacity=".85"/>
-  <ellipse cx="32" cy="196" rx="40" ry="32" fill="#132005" opacity=".75"/>
-  <!-- trees -->
-  <g fill="#223c10" opacity=".72">
-    <circle cx="252" cy="38" r="8"/><circle cx="268" cy="52" r="10"/>
-    <circle cx="282" cy="40" r="7"/><circle cx="296" cy="56" r="9"/>
-    <circle cx="258" cy="62" r="7"/><circle cx="280" cy="66" r="7"/>
-    <circle cx="38" cy="22" r="9"/><circle cx="54" cy="34" r="11"/><circle cx="26" cy="40" r="7"/>
-    <circle cx="22" cy="186" r="8"/><circle cx="38" cy="202" r="10"/>
-  </g>
-  <!-- river -->
-  <path d="M212 0 Q216 52 208 120 Q203 166 210 260" stroke="#1e5a80" stroke-width="8" fill="none" opacity=".72"/>
-  <path d="M212 0 Q216 52 208 120 Q203 166 210 260" stroke="#2870a0" stroke-width="4.5" fill="none" opacity=".38"/>
-  <text x="224" y="90" fill="rgba(100,180,220,.75)" font-size="9" font-family="sans-serif" transform="rotate(-72,224,90)">旭川</text>
-  <!-- road R313 -->
-  <path d="M0 136 Q72 128 172 134 Q255 140 350 125" stroke="#404e28" stroke-width="8" fill="none"/>
-  <path d="M0 136 Q72 128 172 134 Q255 140 350 125" stroke="#4e5e30" stroke-width="5" fill="none" stroke-dasharray="13,7"/>
-  <rect x="18" y="128" width="34" height="13" rx="3" fill="rgba(58,74,37,.9)"/>
-  <text x="35" y="139" text-anchor="middle" fill="rgba(255,255,255,.85)" font-size="8.5" font-family="sans-serif" font-weight="bold">R313</text>
-  <!-- prefectural road -->
-  <path d="M172 0 Q170 86 172 134 Q173 164 168 260" stroke="#2e3e1a" stroke-width="5" fill="none"/>`;
-
-  // Render polygons from records (simplified: use spot positions)
-  const spotPos = {
-    'spot1': { x: 185, y: 105, w: 60, h: 40 },
-    'spot2': { x:  75, y: 100, w: 55, h: 52 },
-    'spot3': { x:  88, y: 124, w: 82, h: 22 },
-  };
-
-  // Group records by spot, by age
   const now = new Date();
-  records.slice().reverse().forEach((r, i) => {
-    const pos = spotPos[r.spotId];
-    if (!pos) return;
-    const age = (now - new Date(r.date)) / 86400000;
-    const opacity = age < 7 ? .75 : age < 30 ? .5 : .28;
-    const strokeOp = age < 7 ? .9 : .4;
-    html += `<rect x="${pos.x - pos.w/2 + (i%3)*3}" y="${pos.y - pos.h/2 + (i%3)*2}" width="${pos.w}" height="${pos.h}" rx="4" fill="rgba(45,90,20,${opacity})" stroke="rgba(158,232,64,${strokeOp})" stroke-width="${age<7?2:1}"/>`;
+
+  // フィルタリング
+  const filtered = records.filter(r => {
+    if (mapFilter === 'month') {
+      const ms = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      return r.date.startsWith(ms);
+    }
+    return true;
   });
 
-  // Labels
-  html += `
-  <rect x="124" y="76" width="102" height="14" rx="4" fill="rgba(0,0,0,.68)"/>
-  <text x="175" y="87" text-anchor="middle" fill="rgba(255,255,255,.88)" font-size="8.5" font-family="'Noto Sans JP',sans-serif">高仙の里よの 南法面</text>
-  <rect x="54" y="155" width="78" height="13" rx="4" fill="rgba(0,0,0,.6)"/>
-  <text x="93" y="165" text-anchor="middle" fill="rgba(255,255,255,.78)" font-size="8" font-family="'Noto Sans JP',sans-serif">田んぼ西側畦畔</text>
-  <!-- GPS pulse -->
-  <circle cx="186" cy="108" r="10" fill="rgba(158,232,64,.15)" stroke="none">
-    <animate attributeName="r" values="8;14;8" dur="2.2s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values=".7;0;.7" dur="2.2s" repeatCount="indefinite"/>
-  </circle>
-  <circle cx="186" cy="108" r="3.8" fill="#9ee840" stroke="white" stroke-width="1.4"/>`;
+  filtered.forEach(r => {
+    const age = (now - new Date(r.date)) / 86400000;
 
-  svg.innerHTML = html;
+    // GPS軌跡があればポリラインバッファ、なければスポット位置に円
+    if (r.gpsPoints && r.gpsPoints.length >= 2) {
+      // GPS軌跡 → ポリライン
+      const coords = r.gpsPoints.map(p => [p.lat, p.lon]);
+      const color = age < 7 ? '#9ee840' : age < 30 ? '#6ab82e' : '#3d7a22';
+      const opacity = age < 7 ? 0.85 : age < 30 ? 0.6 : 0.35;
+      const weight = age < 7 ? 5 : age < 30 ? 4 : 3;
+
+      // ポリライン（軌跡）
+      const line = L.polyline(coords, {
+        color, weight, opacity,
+        lineJoin: 'round', lineCap: 'round',
+      }).addTo(leafletMap);
+
+      line.bindPopup(buildPopup(r));
+      mowedLayers.push(line);
+
+      // 軌跡バッファ（刈幅で膨らませた塗りつぶし風）
+      // Leafletは真のバッファ非対応なので、軌跡を太くして擬似的に表現
+      const buf = L.polyline(coords, {
+        color,
+        weight: Math.max(12, (r.modelBladeW || 0.85) * 14),
+        opacity: opacity * 0.25,
+        lineJoin: 'round',
+      }).addTo(leafletMap);
+      mowedLayers.push(buf);
+
+    } else {
+      // GPS軌跡なし → スポット中心に推定面積の円を表示
+      const spot = DB.spots().find(s => s.id === r.spotId);
+      if (!spot || !spot.lat || !spot.lon) return; // 座標未登録はスキップ
+
+      const color = age < 7 ? '#9ee840' : age < 30 ? '#6ab82e' : '#3d7a22';
+      const fillOp = age < 7 ? 0.3 : age < 30 ? 0.18 : 0.09;
+      const radius = Math.sqrt(r.area / Math.PI); // ㎡ → 半径m
+
+      const circle = L.circle([spot.lat, spot.lon], {
+        radius: Math.max(radius, 5),
+        color,
+        weight: 2,
+        opacity: age < 7 ? 0.9 : 0.5,
+        fillColor: color,
+        fillOpacity: fillOp,
+      }).addTo(leafletMap);
+
+      circle.bindPopup(buildPopup(r));
+      mowedLayers.push(circle);
+    }
+  });
+
+  // スポットマーカー（名前付きピン）
+  const spots = DB.spots().filter(s => s.lat && s.lon);
+  spots.forEach(s => {
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="
+        background:${s.color||'#9ee840'};
+        width:12px;height:12px;
+        border-radius:50%;
+        border:2.5px solid white;
+        box-shadow:0 2px 6px rgba(0,0,0,.5)
+      "></div>`,
+      iconSize: [12, 12],
+      iconAnchor: [6, 6],
+    });
+    const m = L.marker([s.lat, s.lon], { icon })
+      .addTo(leafletMap)
+      .bindPopup(`<b>${s.name}</b><br>目標 年${s.targetFreq}回`);
+    mowedLayers.push(m);
+  });
+}
+
+function buildPopup(r) {
+  const te = TERRAIN[r.terrain] || TERRAIN.flat;
+  const eq = EQUIP[r.equipment] || EQUIP.other;
+  const h = Math.floor(r.workDuration/3600), m = Math.floor((r.workDuration%3600)/60);
+  const tStr = h > 0 ? `${h}時間${m}分` : `${m}分`;
+  return `<b>${escHtml(r.spotName||'作業記録')}</b><br>
+    ${r.date} ${te.icon}${te.label}<br>
+    ${eq.label} ／ ${(r.area/100).toFixed(1)}a ／ ${r.calories}kcal<br>
+    作業時間 ${tStr}`;
 }
 
 function renderMapStats() {
@@ -1045,9 +1287,9 @@ function renderMapStats() {
   const totalArea = yearRecs.reduce((a, r) => a + r.area, 0);
   const spots = DB.spots();
 
-  qs('#map-total-area').textContent  = `${(totalArea/100).toFixed(0)}a`;
-  qs('#map-spot-count').textContent  = spots.length;
-  qs('#map-work-count').textContent  = yearRecs.length;
+  qs('#map-total-area').textContent = `${(totalArea/100).toFixed(0)}a`;
+  qs('#map-spot-count').textContent = spots.length;
+  qs('#map-work-count').textContent = yearRecs.length;
 }
 
 function renderCalendar() {
@@ -1228,20 +1470,79 @@ function showSpotDetail(id) {
   const spot = DB.spots().find(s => s.id === id);
   if (!spot) return;
   const records = DB.records().filter(r => r.spotId === id);
-  const totalArea = records.reduce((a,r)=>a+r.area,0);
+  const totalArea = records.reduce((a,r) => a + r.area, 0);
+
+  const hasLoc = spot.lat && spot.lon;
+  const locLabel = hasLoc
+    ? `📍 ${spot.lat.toFixed(5)}, ${spot.lon.toFixed(5)}`
+    : '📍 位置情報未登録';
+  const locColor = hasLoc ? 'var(--lime)' : 'rgba(255,255,255,.35)';
+
   qs('#detail-modal-content').innerHTML = `
     <div class="modal-title">${escHtml(spot.name)}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
       <div class="metric-card"><div class="metric-val">${records.length}</div><div class="metric-lbl">作業回数</div></div>
       <div class="metric-card"><div class="metric-val">${(totalArea/100).toFixed(0)}a</div><div class="metric-lbl">累計面積</div></div>
     </div>
-    <div style="display:flex;gap:6px;margin-bottom:16px">
-      <span class="tag tag-orange">${TERRAIN[spot.terrain]?.label||'—'}</span>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      <span class="tag tag-orange">${TERRAIN[spot.terrain]?.label || '—'}</span>
       <span class="tag tag-gray">目標 年${spot.targetFreq}回</span>
+      <span class="tag tag-gray" style="color:${locColor}">${locLabel}</span>
     </div>
-    ${records.slice(0,3).map(r=>`<div class="record-card" style="margin-bottom:6px">${recordCardHTML(r)}</div>`).join('')}
+
+    <!-- 位置情報更新ボタン -->
+    <button onclick="updateSpotLocation('${id}')" id="btn-update-loc"
+      style="width:100%;height:42px;background:rgba(158,232,64,.09);border:1px solid rgba(158,232,64,.28);border-radius:12px;color:var(--neon);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;margin-bottom:10px;transition:.2s">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      ${hasLoc ? '📍 位置情報を現在地に更新' : '📍 現在地を位置情報として登録'}
+    </button>
+    <div id="spot-loc-status" style="font-size:11px;color:rgba(255,255,255,.38);text-align:center;margin-bottom:12px;min-height:14px"></div>
+
+    ${records.length > 0 ? `<div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.32);text-transform:uppercase;margin-bottom:8px">最近の作業</div>` : ''}
+    ${records.slice(0,3).map(r => recordCardHTML(r)).join('')}
   `;
   qs('#modal-detail').classList.add('open');
+}
+
+async function updateSpotLocation(spotId) {
+  const btn = qs('#btn-update-loc');
+  const status = qs('#spot-loc-status');
+  if (!btn || !status) return;
+
+  btn.innerHTML = '📡 位置情報を取得中…';
+  btn.style.opacity = '.6';
+
+  try {
+    const pos = await getPosition();
+    const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+
+    // DBのスポットを更新
+    const spots = DB.spots();
+    const sp = spots.find(s => s.id === spotId);
+    if (sp) {
+      sp.lat = lat;
+      sp.lon = lon;
+      DB.saveSpots(spots);
+    }
+
+    btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> ✅ 位置情報を更新しました`;
+    btn.style.background = 'rgba(158,232,64,.2)';
+    btn.style.borderColor = 'rgba(158,232,64,.6)';
+    btn.style.opacity = '1';
+    status.textContent = `緯度 ${lat.toFixed(5)} / 経度 ${lon.toFixed(5)} ／ 精度 ±${Math.round(accuracy)}m`;
+    status.style.color = 'var(--lime)';
+
+    // 地図に反映
+    if (state.screen === 'map') drawMowedPolygons();
+    showToast(`📍 「${sp?.name || 'スポット'}」の位置情報を更新しました`);
+
+  } catch (e) {
+    btn.innerHTML = '⚠️ 位置情報の取得に失敗';
+    btn.style.opacity = '1';
+    btn.style.borderColor = 'rgba(217,79,42,.4)';
+    btn.style.color = 'var(--danger)';
+    status.textContent = '設定 → プライバシー → 位置情報サービスを確認してください';
+  }
 }
 
 /* ─────────────────────────────────────
@@ -1306,15 +1607,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Add spot button
   qs('#btn-add-spot').addEventListener('click', () => {
-    openStartModal(); // reuse start flow for now
+    openStartModal();
   });
-
-  // Map filters
-  qsa('.filter-btn').forEach(b => b.addEventListener('click', () => {
-    qsa('.filter-btn').forEach(x => x.classList.remove('active'));
-    b.classList.add('active');
-    renderMapSVG();
-  }));
 
   // Initial render
   navigate('home');
