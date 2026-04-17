@@ -1213,11 +1213,8 @@ function renderMap() {
   initLeafletMap();
   renderMapStats();
   renderCalendar();
-  renderSpotList();
   drawMowedPolygons();
   startLiveTracking();
-
-  // 地図サイズを正しく再計算（画面切り替え後に必要）
   setTimeout(() => leafletMap && leafletMap.invalidateSize(), 120);
 }
 
@@ -1741,10 +1738,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // CSV
   qs('#btn-export-csv').addEventListener('click', exportCSV);
 
-  // Add spot button
-  qs('#btn-add-spot').addEventListener('click', () => {
-    openStartModal();
-  });
+  // Add spot button（地図画面から削除のためコメントアウト）
+  // qs('#btn-add-spot')?.addEventListener('click', () => openStartModal());
 
   // Initial render
   navigate('home');
