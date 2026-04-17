@@ -8,14 +8,14 @@
 <!-- iOS PWA 必須タグ -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="草刈り">
+<meta name="apple-mobile-web-app-title" content="Goodmowing">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="apple-touch-startup-image" href="icon-512.png">
 
 <!-- 標準PWA -->
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="草刈り作業の時間・面積・カロリーを記録・可視化するPWAアプリ">
-<title>草刈りトラッカー</title>
+<title>Goodmowing</title>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
@@ -30,7 +30,7 @@
   <div class="screen active" id="screen-home">
 
     <div class="home-header">
-      <div class="app-logo">草刈り<small>TRACKER / 作業記録</small></div>
+      <div class="app-logo">Goodmowing<small>草刈り日和</small></div>
       <div class="weather-pill">
         <span id="weather-icon">🌤</span>
         <span id="weather-temp" class="temp">—</span>℃
@@ -56,7 +56,10 @@
     <div class="start-wrap">
       <button class="btn-primary" id="btn-start-work">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        作業を開始する / Start Work
+        <span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.15">
+          <span>作業を開始する</span>
+          <span style="font-size:14px;opacity:.7;letter-spacing:.06em">Start Work</span>
+        </span>
       </button>
     </div>
 
@@ -191,12 +194,46 @@
     </div>
 
     <div class="share-actions">
+      <!-- 作業場所の設定（保存前） -->
+      <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:14px 16px;margin-bottom:4px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:10px">📍 作業場所 / Spot</div>
+        <!-- 既存スポット選択 -->
+        <div id="result-spot-selector" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;max-height:130px;overflow-y:auto"></div>
+        <!-- 新規スポット名入力 -->
+        <div id="result-new-spot-area">
+          <input class="form-input" id="result-spot-name" type="text"
+            placeholder="場所の名前を入力（新規登録）"
+            style="font-size:14px;margin-bottom:8px"
+            oninput="onResultSpotNameInput()">
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <select class="form-input" id="result-spot-freq" style="font-size:13px;padding:7px 10px;flex:1">
+              <option value="2">年2回</option>
+              <option value="3" selected>年3回</option>
+              <option value="4">年4回</option>
+              <option value="6">年6回</option>
+              <option value="12">毎月</option>
+            </select>
+            <div style="display:flex;gap:5px">
+              <div class="spot-color-opt selected" data-color="#9ee840" onclick="selectSpotColor('#9ee840')" style="width:22px;height:22px;border-radius:50%;background:#9ee840;border:2px solid white;cursor:pointer;flex-shrink:0"></div>
+              <div class="spot-color-opt" data-color="#6ab82e" onclick="selectSpotColor('#6ab82e')" style="width:22px;height:22px;border-radius:50%;background:#6ab82e;border:2px solid transparent;cursor:pointer;flex-shrink:0"></div>
+              <div class="spot-color-opt" data-color="#e8a020" onclick="selectSpotColor('#e8a020')" style="width:22px;height:22px;border-radius:50%;background:#e8a020;border:2px solid transparent;cursor:pointer;flex-shrink:0"></div>
+              <div class="spot-color-opt" data-color="#d94f2a" onclick="selectSpotColor('#d94f2a')" style="width:22px;height:22px;border-radius:50%;background:#d94f2a;border:2px solid transparent;cursor:pointer;flex-shrink:0"></div>
+              <div class="spot-color-opt" data-color="#7ab8c8" onclick="selectSpotColor('#7ab8c8')" style="width:22px;height:22px;border-radius:50%;background:#7ab8c8;border:2px solid transparent;cursor:pointer;flex-shrink:0"></div>
+            </div>
+            <button onclick="attachCurrentLocationToResult()" style="flex-shrink:0;height:36px;padding:0 12px;background:rgba(158,232,64,.1);border:1px solid rgba(158,232,64,.28);border-radius:10px;color:var(--neon);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">📍 現在地</button>
+          </div>
+          <div id="result-location-status" style="font-size:10px;color:rgba(255,255,255,.35);margin-top:5px;min-height:14px"></div>
+        </div>
+      </div>
+
       <button class="btn-share-x" id="btn-share-x">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
         Xへシェア / Share to X
       </button>
       <button class="btn-secondary" id="btn-copy-share">📋 テキストをコピー / Copy text</button>
-      <button class="btn-secondary" onclick="navigate('home')">✓ 記録を保存して終わる / Done</button>
+      <button class="btn-primary" style="height:54px;font-size:22px" onclick="saveAndGoHome()">
+        ✓ 記録を保存する / Save
+      </button>
     </div>
     <div class="spacer-md"></div>
   </div><!-- /result -->
@@ -332,6 +369,7 @@
           <select class="settings-select" id="setting-kari-maker">
             <option value="orec">オーレック</option>
             <option value="kyoritsu">共立（やまびこ）</option>
+            <option value="shindaiwa">シンダイワ</option>
             <option value="honda">Honda</option>
             <option value="kubota">クボタ</option>
             <option value="makita">マキタ</option>
@@ -493,43 +531,6 @@
 
         <!-- Safety hint -->
         <div class="safety-warn" id="modal-safety"></div>
-
-        <!-- Spot -->
-        <div class="form-group">
-          <label>作業場所 / Spot</label>
-          <div class="spot-selector" id="spot-selector"></div>
-          <div class="hidden" id="new-spot-row" style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
-            <input class="form-input" id="new-spot-name" type="text" placeholder="場所の名前を入力 / Enter spot name">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center">
-              <div>
-                <div style="font-size:10px;font-weight:700;letter-spacing:.07em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:5px">目標回数/年</div>
-                <select class="form-input" id="new-spot-freq" style="font-size:14px;padding:8px 10px">
-                  <option value="2">年2回</option>
-                  <option value="3" selected>年3回</option>
-                  <option value="4">年4回</option>
-                  <option value="6">年6回</option>
-                  <option value="12">毎月</option>
-                </select>
-              </div>
-              <div>
-                <div style="font-size:10px;font-weight:700;letter-spacing:.07em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:5px">カラー</div>
-                <div style="display:flex;gap:6px;padding:6px 0">
-                  <div class="spot-color-opt selected" data-color="#9ee840" onclick="selectSpotColor('#9ee840')" style="width:24px;height:24px;border-radius:50%;background:#9ee840;border:2px solid white;cursor:pointer"></div>
-                  <div class="spot-color-opt" data-color="#6ab82e" onclick="selectSpotColor('#6ab82e')" style="width:24px;height:24px;border-radius:50%;background:#6ab82e;border:2px solid transparent;cursor:pointer"></div>
-                  <div class="spot-color-opt" data-color="#e8a020" onclick="selectSpotColor('#e8a020')" style="width:24px;height:24px;border-radius:50%;background:#e8a020;border:2px solid transparent;cursor:pointer"></div>
-                  <div class="spot-color-opt" data-color="#d94f2a" onclick="selectSpotColor('#d94f2a')" style="width:24px;height:24px;border-radius:50%;background:#d94f2a;border:2px solid transparent;cursor:pointer"></div>
-                  <div class="spot-color-opt" data-color="#7ab8c8" onclick="selectSpotColor('#7ab8c8')" style="width:24px;height:24px;border-radius:50%;background:#7ab8c8;border:2px solid transparent;cursor:pointer"></div>
-                </div>
-              </div>
-            </div>
-            <button onclick="attachCurrentLocation()" id="btn-attach-location"
-              style="width:100%;height:42px;background:rgba(158,232,64,.1);border:1px solid rgba(158,232,64,.3);border-radius:12px;color:var(--neon);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:.2s">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-              📍 現在地を位置情報として登録
-            </button>
-            <div id="location-status" style="font-size:11px;color:rgba(255,255,255,.4);text-align:center;min-height:16px"></div>
-          </div>
-        </div>
 
       </div><!-- /form-grid -->
 

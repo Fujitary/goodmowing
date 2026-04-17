@@ -1,6 +1,6 @@
 {
-  "name": "草刈りトラッカー",
-  "short_name": "草刈り",
+  "name": "Goodmowing",
+  "short_name": "Goodmowing",
   "description": "草刈り作業の時間・面積・カロリーを記録・可視化するアプリ",
   "start_url": "./index.html",
   "scope": "./",

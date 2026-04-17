@@ -43,27 +43,53 @@ const EQUIP = {
 
 // 刈払い機：メーカー別モデル一覧
 const KARI_MAKERS = {
-  orec:     { label: 'オーレック',   labelEn: 'OREC' },
-  kyoritsu: { label: '共立(やまびこ)', labelEn: 'Kyoritsu' },
-  honda:    { label: 'Honda',        labelEn: 'Honda' },
-  kubota:   { label: 'クボタ',       labelEn: 'Kubota' },
-  makita:   { label: 'マキタ',       labelEn: 'Makita' },
-  husq:     { label: 'ハスクバーナ', labelEn: 'Husqvarna' },
-  other:    { label: 'その他',       labelEn: 'Other' },
+  orec:      { label: 'オーレック',    labelEn: 'OREC' },
+  kyoritsu:  { label: '共立(やまびこ)', labelEn: 'Kyoritsu' },
+  shindaiwa: { label: 'シンダイワ',    labelEn: 'Shindaiwa' },
+  honda:     { label: 'Honda',         labelEn: 'Honda' },
+  kubota:    { label: 'クボタ',        labelEn: 'Kubota' },
+  makita:    { label: 'マキタ',        labelEn: 'Makita' },
+  husq:      { label: 'ハスクバーナ',  labelEn: 'Husqvarna' },
+  other:     { label: 'その他',        labelEn: 'Other' },
 };
+
+// カスタム機種（ユーザーが追加できる）
+function getUserKariModels(maker) {
+  try {
+    return JSON.parse(localStorage.getItem(`kt_kari_models_${maker}`) || '[]');
+  } catch { return []; }
+}
+function saveUserKariModel(maker, model) {
+  const models = getUserKariModels(maker);
+  if (!models.find(m => m.id === model.id)) {
+    models.push(model);
+    localStorage.setItem(`kt_kari_models_${maker}`, JSON.stringify(models));
+  }
+}
+function deleteUserKariModel(maker, id) {
+  const models = getUserKariModels(maker).filter(m => m.id !== id);
+  localStorage.setItem(`kt_kari_models_${maker}`, JSON.stringify(models));
+}
 
 const KARI_MODELS = {
   orec:     [
-    { id: 'WM716', label: 'WM716（26cc）', bladeW: 0.90 },
-    { id: 'WM721', label: 'WM721（21cc）', bladeW: 0.90 },
-    { id: 'BC2611', label: 'BC2611（26cc）', bladeW: 0.90 },
+    { id: 'WM716',   label: 'WM716（26cc）',  bladeW: 0.90 },
+    { id: 'WM721',   label: 'WM721（21cc）',  bladeW: 0.90 },
+    { id: 'BC2611',  label: 'BC2611（26cc）', bladeW: 0.90 },
     { id: 'orec_other', label: 'その他オーレック', bladeW: 0.90 },
   ],
   kyoritsu: [
-    { id: 'RME262', label: 'RME262（26cc）', bladeW: 0.90 },
-    { id: 'RME231', label: 'RME231（23cc）', bladeW: 0.90 },
-    { id: 'RME2650', label: 'RME2650（26cc）', bladeW: 0.90 },
+    { id: 'RME262',   label: 'RME262（26cc）',  bladeW: 0.90 },
+    { id: 'RME231',   label: 'RME231（23cc）',  bladeW: 0.90 },
+    { id: 'RME2650',  label: 'RME2650（26cc）', bladeW: 0.90 },
     { id: 'kyoritsu_other', label: 'その他共立', bladeW: 0.90 },
+  ],
+  shindaiwa: [
+    { id: 'C230',    label: 'C230（23cc）',   bladeW: 0.90 },
+    { id: 'C262',    label: 'C262（26cc）',   bladeW: 0.90 },
+    { id: 'C3410',   label: 'C3410（34cc）',  bladeW: 0.90 },
+    { id: 'M2510',   label: 'M2510（25cc）',  bladeW: 0.90 },
+    { id: 'shindaiwa_other', label: 'その他シンダイワ', bladeW: 0.90 },
   ],
   honda:    [
     { id: 'UMK425', label: 'UMK425（25cc）', bladeW: 0.90 },
@@ -80,14 +106,19 @@ const KARI_MODELS = {
     { id: 'makita_other', label: 'その他マキタ', bladeW: 0.90 },
   ],
   husq:     [
-    { id: '135R', label: '135R（35cc）', bladeW: 0.90 },
-    { id: '545RX', label: '545RX（45cc）', bladeW: 0.90 },
+    { id: '135R',   label: '135R（35cc）',  bladeW: 0.90 },
+    { id: '545RX',  label: '545RX（45cc）', bladeW: 0.90 },
     { id: 'husq_other', label: 'その他ハスクバーナ', bladeW: 0.90 },
   ],
   other:    [
     { id: 'kari_custom', label: 'その他（手動入力）', bladeW: 0.90 },
   ],
 };
+
+// メーカーのモデル一覧（プリセット＋ユーザー追加）
+function getAllKariModels(maker) {
+  return [...(KARI_MODELS[maker] || KARI_MODELS.other), ...getUserKariModels(maker)];
+}
 
 // スパイダーモア機種
 const SPIDER_MODELS_LIST = [
@@ -359,21 +390,10 @@ function renderStartModal() {
   state.hammerModel = profile.defaultHammer  || 'HRC662';
   state.terrain     = 'flat';
   state.bladeType   = 'chip255';
-  state.targetSpotId = null;
   state.modelBladeW  = getModelBladeW();
 
   updateEquipUI();
   updateTerrainUI();
-
-  // Spots
-  const spots = DB.spots();
-  const spotSel = qs('#spot-selector');
-  spotSel.innerHTML = spots.map(s =>
-    `<div class="spot-option" data-id="${s.id}" onclick="selectSpot('${s.id}')">${s.name}</div>`
-  ).join('') + `<div class="spot-option spot-option-new" onclick="selectSpot('new')">＋ 新しい場所を登録</div>`;
-
-  qs('#new-spot-name').value = '';
-  qs('#new-spot-row').classList.add('hidden');
   qs('#slope-hint').classList.add('hidden');
 }
 
@@ -385,8 +405,8 @@ function getModelBladeW() {
     return (HAMMER_MODELS_LIST.find(m => m.id === state.hammerModel) || HAMMER_MODELS_LIST[0]).bladeW;
   }
   if (state.equipment === 'kari') {
-    const models = KARI_MODELS[state.kariMaker] || KARI_MODELS.other;
-    return (models.find(m => m.id === state.kariModel) || models[0]).bladeW;
+    const models = getAllKariModels(state.kariMaker);
+    return (models.find(m => m.id === state.kariModel) || models[0])?.bladeW || 0.90;
   }
   return EQUIP[state.equipment]?.bladeW || 0.80;
 }
@@ -437,12 +457,42 @@ function renderKariMakerBtns() {
 }
 
 function renderKariModelBtns() {
-  const models = KARI_MODELS[state.kariMaker] || KARI_MODELS.other;
+  const models = getAllKariModels(state.kariMaker);
   const wrap = qs('#kari-model-btns');
-  wrap.innerHTML = models.map(m =>
-    `<button class="form-select-btn model-btn${state.kariModel === m.id ? ' selected' : ''}"
-      data-model="${m.id}" onclick="selectKariModel('${m.id}')">${m.label}</button>`
-  ).join('');
+  wrap.innerHTML = models.map(m => {
+    const isUser = getUserKariModels(state.kariMaker).some(u => u.id === m.id);
+    return `<button class="form-select-btn model-btn${state.kariModel === m.id ? ' selected' : ''}"
+      data-model="${m.id}" onclick="selectKariModel('${m.id}')">
+      ${m.label}${isUser ? ` <span onclick="deleteCustomModel(event,'${state.kariMaker}','${m.id}')" style="margin-left:4px;color:var(--danger);font-size:12px">✕</span>` : ''}
+    </button>`;
+  }).join('') +
+  `<button class="form-select-btn" onclick="addCustomModel('${state.kariMaker}')"
+    style="border-style:dashed;color:rgba(255,255,255,.4);font-size:11px">
+    ＋ 機種を追加
+  </button>`;
+}
+
+function addCustomModel(maker) {
+  const name = prompt('機種名を入力してください（例：RME265X）');
+  if (!name || !name.trim()) return;
+  const id = `custom_${Date.now()}`;
+  saveUserKariModel(maker, { id, label: name.trim(), bladeW: 0.90 });
+  state.kariModel = id;
+  state.modelBladeW = 0.90;
+  renderKariModelBtns();
+  updateModelLabel();
+}
+
+function deleteCustomModel(e, maker, id) {
+  e.stopPropagation();
+  if (!confirm('この機種を削除しますか？')) return;
+  deleteUserKariModel(maker, id);
+  if (state.kariModel === id) {
+    state.kariModel = getAllKariModels(maker)[0]?.id || '';
+    state.modelBladeW = getModelBladeW();
+  }
+  renderKariModelBtns();
+  updateModelLabel();
 }
 
 function renderSpiderModelBtns() {
@@ -463,8 +513,7 @@ function renderHammerModelBtns() {
 
 function selectKariMaker(maker) {
   state.kariMaker = maker;
-  // そのメーカーの最初のモデルを自動選択
-  state.kariModel = KARI_MODELS[maker]?.[0]?.id || 'kari_custom';
+  state.kariModel = getAllKariModels(maker)[0]?.id || 'kari_custom';
   state.modelBladeW = getModelBladeW();
   renderKariMakerBtns();
   renderKariModelBtns();
@@ -502,7 +551,7 @@ function updateModelLabel() {
   let detail = '';
   if (state.equipment === 'kari') {
     const maker = KARI_MAKERS[state.kariMaker]?.label || '';
-    const models = KARI_MODELS[state.kariMaker] || [];
+    const models = getAllKariModels(state.kariMaker);
     const model = models.find(m => m.id === state.kariModel);
     detail = `${maker} ${model?.label || ''} ／ 刈幅 ${(state.modelBladeW*100).toFixed(0)}cm`;
   } else if (state.equipment === 'spider') {
@@ -593,35 +642,12 @@ function updateSafetyHint() {
 }
 
 function startWork() {
-  // Validate
-  const spotName = state.targetSpotId === 'new'
-    ? qs('#new-spot-name').value.trim()
-    : (DB.spots().find(s => s.id === state.targetSpotId)?.name || '');
-  if (!spotName && !state.targetSpotId) {
-    showToast('作業場所を選択してください'); return;
-  }
-  state.spotName = spotName || (DB.spots().find(s => s.id === state.targetSpotId)?.name || '作業記録');
-
-  if (state.targetSpotId === 'new' && spotName) {
-    const freq = parseInt(qs('#new-spot-freq')?.value || '3', 10);
-    const newSpot = {
-      id: `spot_${Date.now()}`,
-      name: spotName,
-      color: state.newSpotColor || '#9ee840',
-      targetFreq: freq,
-      terrain: state.terrain,
-      area: 0,
-      lat: state.newSpotLat,   // null のときは地図表示なし（後で更新可）
-      lon: state.newSpotLon,
-      lastMowed: null,
-      memo: '',
-    };
-    const spots = DB.spots();
-    spots.push(newSpot);
-    DB.saveSpots(spots);
-    state.targetSpotId = newSpot.id;
-    if (newSpot.lat) showToast(`📍 「${spotName}」の位置情報を登録しました`);
-  }
+  // 作業場所は保存時に設定するためここでは不要
+  state.spotName = '';
+  state.targetSpotId = null;
+  state.newSpotLat = null;
+  state.newSpotLon = null;
+  state.newSpotColor = '#9ee840';
 
   closeStartModal();
   navigate('work');
@@ -820,39 +846,26 @@ function endWork() {
     temperature: state.temperature,
     temperatureAuto: state.tempAuto,
     estimatedSlope: state.estimatedSlope,
-    spotId: state.targetSpotId,
-    spotName: state.spotName,
+    spotId: null,       // saveAndGoHomeで設定
+    spotName: '作業記録', // saveAndGoHomeで更新
     memo: '',
     gpsEnabled: state.gpsEnabled,
-    gpsPoints: state.gpsEnabled ? state.gpsPoints.slice(-500) : [], // 最大500点
+    gpsPoints: state.gpsEnabled ? state.gpsPoints.slice(-500) : [],
     gpsDist: Math.round(state.gpsDist),
     gpsArea: areaM2,
     gpsSamples: state.gpsPoints.length,
     badges: [],
   };
 
-  // Update spot lastMowed & 位置情報（未登録の場合のみ自動付与）
-  if (state.targetSpotId && state.targetSpotId !== 'new') {
-    const spots = DB.spots();
-    const sp = spots.find(s => s.id === state.targetSpotId);
-    if (sp) {
-      sp.lastMowed = record.date;
-      // GPS有効かつ位置未登録 → 最初のGPS点を位置として登録
-      if (state.gpsEnabled && state.gpsPoints.length > 0 && !sp.lat) {
-        const firstPt = state.gpsPoints[0];
-        sp.lat = firstPt.lat;
-        sp.lon = firstPt.lon;
-        showToast(`📍 「${sp.name}」に位置情報を自動登録しました`);
-      }
-      DB.saveSpots(spots);
-    }
-  }
-
   DB.saveRecord(record);
 
   // Badge check
   const newBadges = checkBadges(record);
   record.badges = newBadges;
+  // バッジ更新をDBにも反映
+  const recs = DB.records();
+  const ri = recs.findIndex(r => r.id === record.id);
+  if (ri >= 0) { recs[ri].badges = newBadges; DB.set('records', recs); }
 
   state.lastRecord = record;
   state.working = false;
@@ -945,7 +958,7 @@ function renderResult() {
   const timeUnit = h > 0 ? 'h:m' : 'min';
 
   qs('#result-date').textContent = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${['SUN','MON','TUE','WED','THU','FRI','SAT'][d.getDay()]}`;
-  qs('#result-spot').textContent = r.spotName || '作業記録';
+  qs('#result-spot').textContent = '—（場所を設定してください）';
   qs('#result-terrain-tag').className = `tag ${r.terrain==='steep'||r.terrain==='extreme'?'tag-red':'tag-orange'}`;
   qs('#result-terrain-tag').textContent = `${te.icon} ${te.label} ${te.stars}`;
   qs('#result-equip-tag').textContent = eq.label;
@@ -966,13 +979,136 @@ function renderResult() {
     badgeEl.innerHTML = `<div class="badge-chip">🌿 累計 ${((DB.records().reduce((a,rec)=>a+rec.area,0))/100).toFixed(1)}a</div>`;
   }
 
-  // Food equiv
   const beers = (r.calories / 140).toFixed(1);
   const rice  = (r.calories / 200).toFixed(1);
   qs('#result-equiv').textContent = `🍺 缶ビール約${beers}本分 ／ 🍚 ご飯 約${rice}杯分を消費！`;
-
-  // Share text
   qs('#share-text-preview').textContent = generateShareText(r);
+
+  // ── 作業場所UIを初期化 ──
+  state.targetSpotId = null;
+  state.newSpotLat = null;
+  state.newSpotLon = null;
+  state.newSpotColor = '#9ee840';
+  renderResultSpotSelector();
+  const nameEl = qs('#result-spot-name');
+  if (nameEl) { nameEl.value = ''; }
+  const locSt = qs('#result-location-status');
+  if (locSt) locSt.textContent = '';
+}
+
+function renderResultSpotSelector() {
+  const spots = DB.spots();
+  const el = qs('#result-spot-selector');
+  if (!el) return;
+  el.innerHTML = spots.map(s =>
+    `<div class="spot-option${state.targetSpotId === s.id ? ' selected' : ''}"
+      data-id="${s.id}" onclick="selectResultSpot('${s.id}')"
+      style="display:flex;align-items:center;gap:8px">
+      <div style="width:10px;height:10px;border-radius:50%;background:${s.color};flex-shrink:0"></div>
+      ${escHtml(s.name)}
+    </div>`
+  ).join('');
+}
+
+function selectResultSpot(id) {
+  state.targetSpotId = id === state.targetSpotId ? null : id; // トグル
+  renderResultSpotSelector();
+  // 既存スポット選択時は名前入力欄を非表示
+  const nameEl = qs('#result-spot-name');
+  const newArea = qs('#result-new-spot-area');
+  if (state.targetSpotId) {
+    const spot = DB.spots().find(s => s.id === state.targetSpotId);
+    qs('#result-spot').textContent = spot?.name || '—';
+    if (nameEl) nameEl.value = '';
+  } else {
+    qs('#result-spot').textContent = '—（場所を設定してください）';
+  }
+}
+
+function onResultSpotNameInput() {
+  // 名前を入力中は既存スポット選択を解除
+  if (state.targetSpotId) {
+    state.targetSpotId = null;
+    renderResultSpotSelector();
+  }
+  const name = qs('#result-spot-name')?.value.trim() || '';
+  qs('#result-spot').textContent = name || '—（場所を設定してください）';
+}
+
+async function attachCurrentLocationToResult() {
+  const status = qs('#result-location-status');
+  const btn = document.activeElement;
+  try {
+    status.textContent = '📡 取得中…';
+    const pos = await getPosition();
+    state.newSpotLat = pos.coords.latitude;
+    state.newSpotLon = pos.coords.longitude;
+    status.textContent = `📍 緯度 ${state.newSpotLat.toFixed(5)} / 経度 ${state.newSpotLon.toFixed(5)} ／ ±${Math.round(pos.coords.accuracy)}m`;
+    status.style.color = 'var(--lime)';
+  } catch {
+    status.textContent = '⚠️ 位置情報の取得に失敗しました';
+    status.style.color = 'var(--danger)';
+  }
+}
+
+function saveAndGoHome() {
+  const r = state.lastRecord;
+  if (!r) { navigate('home'); return; }
+
+  const inputName = qs('#result-spot-name')?.value.trim() || '';
+
+  if (state.targetSpotId) {
+    // 既存スポットに紐付け
+    const spot = DB.spots().find(s => s.id === state.targetSpotId);
+    r.spotId   = spot?.id || null;
+    r.spotName = spot?.name || '作業記録';
+    // GPS取得済みで位置未登録なら自動付与
+    if (spot && !spot.lat && state.gpsPoints.length > 0) {
+      spot.lat = state.gpsPoints[0].lat;
+      spot.lon = state.gpsPoints[0].lon;
+      const spots = DB.spots();
+      const idx = spots.findIndex(s => s.id === spot.id);
+      if (idx >= 0) { spots[idx] = spot; DB.saveSpots(spots); }
+    }
+    // lastMowed更新
+    const spots = DB.spots();
+    const sp = spots.find(s => s.id === state.targetSpotId);
+    if (sp) { sp.lastMowed = r.date; DB.saveSpots(spots); }
+
+  } else if (inputName) {
+    // 新規スポット作成
+    const freq = parseInt(qs('#result-spot-freq')?.value || '3', 10);
+    const newSpot = {
+      id: `spot_${Date.now()}`,
+      name: inputName,
+      color: state.newSpotColor || '#9ee840',
+      targetFreq: freq,
+      terrain: r.terrain,
+      area: r.area,
+      lat: state.newSpotLat || (state.gpsPoints[0]?.lat ?? null),
+      lon: state.newSpotLon || (state.gpsPoints[0]?.lon ?? null),
+      lastMowed: r.date,
+      memo: '',
+    };
+    const spots = DB.spots();
+    spots.push(newSpot);
+    DB.saveSpots(spots);
+    r.spotId   = newSpot.id;
+    r.spotName = newSpot.name;
+    if (newSpot.lat) showToast(`📍 「${inputName}」の位置情報を登録しました`);
+  } else {
+    // 場所未設定でもOK
+    r.spotId   = null;
+    r.spotName = '作業記録';
+  }
+
+  // 記録を更新保存（endWorkで既に保存済みなのでDB上のレコードを更新）
+  const records = DB.records();
+  const idx = records.findIndex(rec => rec.id === r.id);
+  if (idx >= 0) { records[idx] = r; DB.set('records', records); }
+
+  navigate('home');
+  showToast('✓ 記録を保存しました！');
 }
 
 function generateShareText(r) {
