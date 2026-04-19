@@ -93,6 +93,28 @@
       </div>
     </div>
 
+    <!-- ── キャラクターフィールド ── -->
+    <div class="char-field" id="char-field">
+      <!-- 空 -->
+      <div class="cf-sky">
+        <div class="cf-cloud cf-cloud1"></div>
+        <div class="cf-cloud cf-cloud2"></div>
+      </div>
+      <!-- 草原 -->
+      <div class="cf-ground">
+        <div class="cf-ground-top"></div>
+        <div class="cf-mowed" id="cf-mowed"></div>
+      </div>
+      <!-- 影 -->
+      <div class="cf-shadow" id="cf-shadow"></div>
+      <!-- キャラ -->
+      <div class="cf-char standing" id="cf-char">
+        <img id="cf-img" src="" alt="キャラクター">
+      </div>
+      <!-- 草パーティクルコンテナ -->
+      <div id="cf-particles"></div>
+    </div>
+
     <div class="metrics-row">
       <div class="metric-card">
         <div class="metric-val" id="metric-area">0.0</div>
@@ -121,9 +143,7 @@
 
     <div class="terrain-selector">
       <div class="terrain-label">地形・難易度 / Terrain</div>
-      <div class="terrain-grid" id="work-terrain-grid">
-        <!-- rendered by JS -->
-      </div>
+      <div class="terrain-grid" id="work-terrain-grid"></div>
     </div>
 
     <div class="safety-warn" id="work-safety"></div>

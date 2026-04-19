@@ -249,6 +249,103 @@ svg { display:block; }
 .work-header { padding:16px 20px 0; display:flex; align-items:center; justify-content:space-between; }
 .work-label { font-size:11px; font-weight:700; letter-spacing:.1em; color:var(--text-muted); text-transform:uppercase; }
 .work-equipment { font-size:12px; font-weight:700; color:var(--khaki2); }
+
+/* ── キャラクターフィールド ── */
+.char-field {
+  width:100%; height:130px;
+  position:relative; overflow:hidden;
+  margin:8px 0 0;
+  border-top: 1px solid rgba(74,82,24,.12);
+  border-bottom: 1px solid rgba(74,82,24,.12);
+  flex-shrink:0;
+}
+/* 空 */
+.cf-sky {
+  position:absolute; top:0; left:0; right:0; height:55%;
+  background: linear-gradient(180deg, #b0cce0 0%, #cce0ee 100%);
+}
+/* 雲 */
+.cf-cloud {
+  position:absolute; background:rgba(255,255,255,.82); border-radius:20px;
+  animation: cfCloud linear infinite;
+}
+.cf-cloud::before, .cf-cloud::after {
+  content:''; position:absolute; background:rgba(255,255,255,.82); border-radius:50%;
+}
+.cf-cloud1 { width:52px; height:16px; top:28%; animation-duration:24s; animation-delay:-4s; }
+.cf-cloud1::before { width:22px; height:22px; top:-10px; left:8px; }
+.cf-cloud1::after  { width:16px; height:16px; top:-7px; left:26px; }
+.cf-cloud2 { width:38px; height:12px; top:52%; animation-duration:18s; animation-delay:-11s; opacity:.75; }
+.cf-cloud2::before { width:15px; height:15px; top:-7px; left:6px; }
+.cf-cloud2::after  { width:12px; height:12px; top:-5px; left:18px; }
+@keyframes cfCloud { from{left:110%} to{left:-120px} }
+
+/* 草原 */
+.cf-ground {
+  position:absolute; bottom:0; left:0; right:0; height:50%;
+  background: linear-gradient(180deg, #78aa38 0%, #4a7820 100%);
+  overflow:hidden;
+}
+.cf-ground-top {
+  position:absolute; top:0; left:0; right:0; height:8px;
+  background:#8abe48;
+}
+/* 刈り跡（明るい緑） */
+.cf-mowed {
+  position:absolute; top:0; bottom:0; right:0;
+  background: linear-gradient(90deg, #9acd55, #88bb44);
+  width:0%;
+  transition: width .15s linear;
+}
+
+/* キャラ影 */
+.cf-shadow {
+  position:absolute; bottom:50%; left:80%;
+  transform:translateX(-50%);
+  width:36px; height:8px;
+  background:rgba(0,0,0,.2);
+  border-radius:50%;
+  z-index:9;
+}
+/* キャラ本体 */
+.cf-char {
+  position:absolute; bottom:47%;
+  transform:translateX(-50%);
+  z-index:10;
+  image-rendering:pixelated;
+}
+.cf-char img {
+  height:88px; width:auto;
+  image-rendering:pixelated; image-rendering:crisp-edges;
+  display:block;
+}
+/* 歩きボブ */
+@keyframes cfWalkBob {
+  0%,100%{ transform:translateX(-50%) translateY(0); }
+  25%    { transform:translateX(-50%) translateY(-3px); }
+  75%    { transform:translateX(-50%) translateY(2px); }
+}
+@keyframes cfIdleBob {
+  0%,100%{ transform:translateX(-50%) translateY(0); }
+  50%    { transform:translateX(-50%) translateY(-2px); }
+}
+@keyframes cfWalkBobFlip {
+  0%,100%{ transform:translateX(-50%) scaleX(-1) translateY(0); }
+  25%    { transform:translateX(-50%) scaleX(-1) translateY(-3px); }
+  75%    { transform:translateX(-50%) scaleX(-1) translateY(2px); }
+}
+.cf-char.standing { animation:cfIdleBob 2s ease-in-out infinite; }
+.cf-char.walking  { animation:cfWalkBob .5s ease-in-out infinite; }
+.cf-char.walking.flipped { animation:cfWalkBobFlip .5s ease-in-out infinite; }
+.cf-char.standing.flipped { transform:translateX(-50%) scaleX(-1); }
+
+/* 草パーティクル */
+.cf-particle {
+  position:absolute; border-radius:2px; pointer-events:none; z-index:8;
+  width:3px;
+}
+/* パーティクルコンテナ */
+#cf-particles { position:absolute; inset:0; pointer-events:none; z-index:8; }
 .timer-wrap { text-align:center; padding:18px 20px 10px; }
 .timer-ring-container { width:210px; height:210px; margin:0 auto; position:relative; }
 .timer-ring-container svg { width:100%; height:100%; transform:rotate(-90deg); }
