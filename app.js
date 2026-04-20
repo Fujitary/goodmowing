@@ -791,6 +791,9 @@ function beginSession() {
   state.gpsDist = 0;
   state.lastGpsPoint = null;
 
+  // バックグラウンド対応：セッション情報を保存
+  saveSessionState();
+
   renderWorkScreen();
   charAnim.reset();
   charAnim.start();
@@ -798,15 +801,90 @@ function beginSession() {
   startGPS();
 }
 
+/* セッション状態をlocalStorageに保存（バックグラウンド復帰用） */
+function saveSessionState() {
+  if (!state.working) {
+    localStorage.removeItem('kt_session');
+    return;
+  }
+  localStorage.setItem('kt_session', JSON.stringify({
+    working:      true,
+    paused:       state.paused,
+    startTime:    state.startTime?.toISOString(),
+    pauseStart:   state.pauseStart?.toISOString() || null,
+    totalPaused:  state.totalPaused,
+    terrain:      state.terrain,
+    equipment:    state.equipment,
+    kariMaker:    state.kariMaker,
+    kariModel:    state.kariModel,
+    spiderModel:  state.spiderModel,
+    hammerModel:  state.hammerModel,
+    bladeType:    state.bladeType,
+    modelBladeW:  state.modelBladeW,
+    gpsDist:      state.gpsDist,
+    temperature:  state.temperature,
+    tempAuto:     state.tempAuto,
+    spotName:     state.spotName,
+    targetSpotId: state.targetSpotId,
+    savedAt:      new Date().toISOString(),
+  }));
+}
+
+/* バックグラウンドから復帰したとき経過時間を再計算 */
+function restoreSessionIfNeeded() {
+  const raw = localStorage.getItem('kt_session');
+  if (!raw) return false;
+  try {
+    const s = JSON.parse(raw);
+    if (!s.working) return false;
+
+    // startTimeから現在までの実経過時間を再計算
+    const start  = new Date(s.startTime);
+    const now    = new Date();
+    let paused   = s.totalPaused || 0;
+
+    // 一時停止中にバックグラウンドになっていた場合：
+    // 停止した時刻からの時間は「一時停止中」として扱う
+    if (s.paused && s.pauseStart) {
+      paused += (now - new Date(s.pauseStart));
+    }
+
+    const elapsed = Math.max(0, Math.floor((now - start - paused) / 1000));
+
+    // stateを復元
+    state.working      = true;
+    state.paused       = s.paused || false;
+    state.startTime    = start;
+    state.totalPaused  = paused;
+    state.elapsedSec   = elapsed;
+    state.pauseStart   = s.paused && s.pauseStart ? new Date(s.pauseStart) : null;
+    state.terrain      = s.terrain      || 'flat';
+    state.equipment    = s.equipment    || 'kari';
+    state.kariMaker    = s.kariMaker    || 'orec';
+    state.kariModel    = s.kariModel    || 'WM716';
+    state.spiderModel  = s.spiderModel  || 'SP851';
+    state.hammerModel  = s.hammerModel  || 'HRC662';
+    state.bladeType    = s.bladeType    || 'chip255';
+    state.modelBladeW  = s.modelBladeW  || 0.90;
+    state.gpsDist      = s.gpsDist      || 0;
+    state.temperature  = s.temperature  ?? null;
+    state.tempAuto     = s.tempAuto     || false;
+    state.spotName     = s.spotName     || '';
+    state.targetSpotId = s.targetSpotId || null;
+
+    return true;
+  } catch { return false; }
+}
+
 function renderWorkScreen() {
   const eq = EQUIP[state.equipment];
   const te = TERRAIN[state.terrain];
 
-  // 機種詳細ラベルを組み立て
+  // 機種詳細ラベル
   let modelDetail = '';
   if (state.equipment === 'kari') {
     const maker = KARI_MAKERS[state.kariMaker]?.label || '';
-    const models = KARI_MODELS[state.kariMaker] || [];
+    const models = getAllKariModels(state.kariMaker);
     const model = models.find(m => m.id === state.kariModel);
     modelDetail = model ? ` ${maker} ${model.label}` : '';
   } else if (state.equipment === 'spider') {
@@ -820,13 +898,17 @@ function renderWorkScreen() {
   qs('#work-equipment-label').textContent =
     `${eq.label}${modelDetail} ／ ${te.label} ${te.stars}`;
 
-  // Terrain grid
+  // 地形は作業前に固定 → 表示のみ（変更不可）
   const grid = qs('#work-terrain-grid');
   grid.innerHTML = Object.entries(TERRAIN).map(([k, t]) =>
-    `<button class="terrain-btn${state.terrain === k ? ' active' : ''}" data-terrain="${k}" onclick="changeWorkTerrain('${k}')">
+    `<div class="terrain-btn${state.terrain === k ? ' active' : ''}" style="cursor:default;opacity:${state.terrain === k ? 1 : 0.38}">
       <span class="t-icon">${t.icon}</span>${t.label}<br><small>${t.stars}</small>
-    </button>`
+    </div>`
   ).join('');
+
+  // 固定中の注意書き
+  const label = qs('#terrain-fixed-label');
+  if (label) label.style.display = 'block';
 }
 
 function startTimerLoop() {
@@ -840,6 +922,8 @@ function tickTimer() {
   state.elapsedSec = Math.floor((now - state.startTime - state.totalPaused) / 1000);
   updateTimerDisplay();
   updateWorkMetrics();
+  // 10秒ごとにセッション状態を保存（バックグラウンド対応）
+  if (state.elapsedSec % 10 === 0) saveSessionState();
 }
 
 function updateTimerDisplay() {
@@ -918,6 +1002,7 @@ function togglePause() {
     qs('#btn-pause').innerHTML = '▶ 再開';
     qs('#btn-pause').style.color = 'var(--khaki2)';
     charAnim.pause();
+    saveSessionState();
     showToast('⏸ 一時停止中 / Paused');
   } else {
     state.totalPaused += (new Date() - state.pauseStart);
@@ -926,6 +1011,7 @@ function togglePause() {
     qs('#btn-pause').innerHTML = '⏸ 休憩';
     qs('#btn-pause').style.color = '';
     charAnim.start();
+    saveSessionState();
     showToast('▶ 作業再開 / Resumed');
   }
 }
@@ -935,6 +1021,7 @@ function endWork() {
   if (state.elapsedSec < 10) { showToast('作業時間が短すぎます'); return; }
   if (!confirm('作業を終了して記録を保存しますか？')) return;
   charAnim.stop();
+  localStorage.removeItem('kt_session'); // セッションクリア
   stopGPS();
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
 
@@ -1835,6 +1922,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // キャラクター初期化
   charAnim.init();
+
+  // バックグラウンドから復帰時：セッション自動復元
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && state.working) {
+      // 復帰時に経過時間を再計算
+      const now = new Date();
+      state.elapsedSec = Math.max(0,
+        Math.floor((now - state.startTime - state.totalPaused) / 1000));
+      updateTimerDisplay();
+      updateWorkMetrics();
+      // タイマーが止まっていたら再起動
+      if (!state.paused && !timerInterval) startTimerLoop();
+    }
+  });
+
+  // 起動時に未完了セッションがあれば復帰確認
+  if (restoreSessionIfNeeded()) {
+    const resume = confirm(
+      '前回の作業が途中です。\n作業を再開しますか？\n\n' +
+      `経過時間: ${Math.floor(state.elapsedSec/60)}分${state.elapsedSec%60}秒`
+    );
+    if (resume) {
+      navigate('work');
+      renderWorkScreen();
+      charAnim.reset();
+      if (!state.paused) {
+        charAnim.start();
+        startTimerLoop();
+      } else {
+        charAnim.pause();
+        qs('#btn-pause').innerHTML = '▶ 再開';
+      }
+      startGPS();
+      showToast('✓ 作業を再開しました');
+    } else {
+      // 破棄
+      localStorage.removeItem('kt_session');
+      state.working = false;
+    }
+  }
 
   // Nav
   qsa('.nav-btn').forEach(btn => {

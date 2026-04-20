@@ -142,7 +142,10 @@
     </div>
 
     <div class="terrain-selector">
-      <div class="terrain-label">地形・難易度 / Terrain</div>
+      <div class="terrain-label" style="display:flex;align-items:center;justify-content:space-between">
+        <span>地形・難易度 / Terrain</span>
+        <span id="terrain-fixed-label" style="display:none;font-size:9px;color:var(--brown);background:rgba(168,104,48,.12);border:1px solid rgba(168,104,48,.25);border-radius:6px;padding:2px 7px;letter-spacing:.04em">🔒 作業前に設定済み</span>
+      </div>
       <div class="terrain-grid" id="work-terrain-grid"></div>
     </div>
 
