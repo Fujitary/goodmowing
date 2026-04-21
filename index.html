@@ -20,6 +20,44 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, limit, doc, setDoc, getDoc, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  // ══════════════════════════════
+  // 🔧 ここにFirebaseの設定値を入力
+  // ══════════════════════════════
+  const firebaseConfig = {
+    apiKey:            "AIzaSyA2o1FVJT7BJ5jDY1wzGbSFFkasKWcRDFk",
+    authDomain:        "goodmowing-apps.firebaseapp.com",
+    projectId:         "goodmowing-apps",
+    storageBucket:     "goodmowing-apps.firebasestorage.app",
+    messagingSenderId: "12288537416",
+    appId:             "1:12288537416:web:6d97149c1d8a4e2638b97d",
+    measurementId:     "G-NS3SN425FQ",
+  };
+  // ══════════════════════════════
+
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  // グローバルに公開（app.jsから使用）
+  window._fb = { auth, db, provider, signInWithPopup, signOut,
+    onAuthStateChanged, collection, addDoc, getDocs, query, where,
+    orderBy, limit, doc, setDoc, getDoc, serverTimestamp };
+
+  // 認証状態の変化を監視
+  onAuthStateChanged(auth, user => {
+    window._fbUser = user || null;
+    if (typeof onAuthStateChange === 'function') onAuthStateChange(user);
+  });
+</script>
 </head>
 <body>
 <div id="app">
@@ -347,21 +385,50 @@
 
     <div class="settings-header">設定 / Settings</div>
 
+    <!-- Google認証カード -->
+    <div class="settings-section">
+      <div class="settings-section-title">アカウント / Account</div>
+      <div class="settings-card">
+        <!-- 未ログイン -->
+        <div id="auth-logged-out" class="settings-row" style="flex-direction:column;align-items:flex-start;gap:10px">
+          <div>
+            <div class="settings-row-label">Googleアカウント</div>
+            <div class="settings-row-sublabel">ログインするとランキングに参加できます</div>
+          </div>
+          <button class="btn-google-login" onclick="signInGoogle()" style="width:100%">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Googleでログイン / Sign in with Google
+          </button>
+        </div>
+        <!-- ログイン済み -->
+        <div id="auth-logged-in" class="hidden">
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label" id="auth-user-name">—</div>
+              <div class="settings-row-sublabel" id="auth-user-email">—</div>
+            </div>
+            <button onclick="signOutGoogle()"
+              style="background:rgba(184,48,16,.1);border:1px solid rgba(184,48,16,.2);border-radius:10px;padding:7px 13px;font-size:12px;font-weight:700;color:var(--danger);cursor:pointer">
+              ログアウト
+            </button>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-label">ニックネーム<br><span class="settings-row-sublabel">ランキングに表示される名前</span></div>
+            <input class="settings-input" id="setting-nickname" type="text" placeholder="あなたの名前" style="width:130px">
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="settings-section">
       <div class="settings-section-title">プロフィール / Profile</div>
       <div class="settings-card">
         <div class="settings-row">
-          <div><div class="settings-row-label">名前 / Name</div></div>
-          <input class="settings-input" id="setting-name" type="text" placeholder="ユーザー" style="width:120px">
-        </div>
-        <div class="settings-row">
-          <div>
-            <div class="settings-row-label">体重 / Weight</div>
-            <div class="settings-row-sublabel">カロリー計算に使用 / Used for calorie calc</div>
-          </div>
+          <div><div class="settings-row-label">体重 / Weight</div>
+          <div class="settings-row-sublabel">カロリー計算に使用</div></div>
           <div style="display:flex;align-items:center;gap:6px">
             <input class="settings-input" id="setting-weight" type="number" min="30" max="150" step="0.5">
-            <span style="font-size:12px;color:rgba(255,255,255,.4)">kg</span>
+            <span style="font-size:12px;color:var(--text-muted)">kg</span>
           </div>
         </div>
       </div>
@@ -445,6 +512,69 @@
 
 
   <!-- ══════════════════════════════
+       RANKING SCREEN
+  ══════════════════════════════ -->
+  <div class="screen" id="screen-ranking">
+
+    <div class="ranking-header">
+      <div class="ranking-title">今日のランキング</div>
+      <div id="ranking-date" style="font-size:11px;color:var(--text-muted);letter-spacing:.05em"></div>
+    </div>
+
+    <!-- 自分のステータス -->
+    <div id="my-rank-card" class="my-rank-card hidden">
+      <div class="my-rank-inner">
+        <div class="my-rank-left">
+          <div class="my-rank-pos" id="my-rank-pos">—</div>
+          <div style="font-size:10px;color:var(--text-muted)">順位</div>
+        </div>
+        <div class="my-rank-center">
+          <div class="my-rank-name" id="my-rank-name">—</div>
+          <div class="my-rank-stats" id="my-rank-stats">—</div>
+        </div>
+        <div class="my-rank-right">
+          <button class="btn-publish" id="btn-publish" onclick="publishTodayRecord()">
+            🌐 公開する
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ログインバナー（未ログイン時） -->
+    <div id="login-banner" class="login-banner">
+      <div class="login-banner-text">
+        <div style="font-size:14px;font-weight:700;color:var(--text-main);margin-bottom:4px">Googleアカウントでログイン</div>
+        <div style="font-size:12px;color:var(--text-muted)">ランキングに参加・記録を公開できます</div>
+      </div>
+      <button class="btn-google-login" onclick="signInGoogle()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Googleでログイン
+      </button>
+    </div>
+
+    <!-- ランキングリスト -->
+    <div class="section-header">
+      本日のトップ / Today's Top
+      <span id="ranking-count" style="font-weight:400;font-size:10px;margin-left:6px;color:var(--text-muted)"></span>
+    </div>
+
+    <div id="ranking-list" class="ranking-list">
+      <div class="ranking-loading" id="ranking-loading">
+        <div class="loading-spinner"></div>
+        <div style="font-size:13px;color:var(--text-muted);margin-top:8px">読み込み中…</div>
+      </div>
+    </div>
+
+    <div style="padding:12px 20px;text-align:center">
+      <button class="btn-secondary" style="width:auto;padding:0 24px;height:44px;font-size:16px" onclick="loadRanking()">
+        ↺ 更新する
+      </button>
+    </div>
+    <div class="spacer-lg"></div>
+  </div><!-- /ranking -->
+
+
+  <!-- ══════════════════════════════
        BOTTOM NAV
   ══════════════════════════════ -->
   <nav id="bottom-nav">
@@ -456,9 +586,9 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
       <span>作業</span>
     </button>
-    <button class="nav-btn" id="nav-map" data-screen="map">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-      <span>地図</span>
+    <button class="nav-btn" id="nav-ranking" data-screen="ranking">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      <span>順位</span>
     </button>
     <button class="nav-btn" id="nav-records" data-screen="records">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
