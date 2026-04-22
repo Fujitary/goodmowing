@@ -1,5 +1,5 @@
 /* 草刈りトラッカー Service Worker */
-const CACHE = 'kusagari-v3';
+const CACHE = 'kusagari-v4';
 const ASSETS = [
   './index.html',
   './style.css',
@@ -9,7 +9,7 @@ const ASSETS = [
   './icon-512.png',
   'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css',
   'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js',
-  'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@400;700;900&display=swap',
+  'https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Bebas+Neue&family=Noto+Sans+JP:wght@400;700;900&display=swap',
 ];
 
 self.addEventListener('install', e => {
