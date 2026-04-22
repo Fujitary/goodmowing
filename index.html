@@ -26,7 +26,7 @@
 <!-- Firebase -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  import { getAuth, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, signOut, onAuthStateChanged }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, limit, doc, setDoc, getDoc, serverTimestamp }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
@@ -51,30 +51,42 @@
   const provider = new GoogleAuthProvider();
 
   // グローバルに公開（app.jsから使用）
-  window._fb = { auth, db, provider, signInWithPopup, signOut,
-    onAuthStateChanged, collection, addDoc, getDocs, query, where,
+  window._fb = { auth, db, provider, signInWithRedirect, signInWithPopup, signOut,
+    onAuthStateChanged, getRedirectResult, collection, addDoc, getDocs, query, where,
     orderBy, limit, doc, setDoc, getDoc, serverTimestamp };
 
   // 認証状態の変化を監視
-  // app.jsより先に発火する場合に備えてキューイング
   onAuthStateChanged(auth, user => {
     window._fbUser = user || null;
     if (typeof onAuthStateChange === 'function') {
       onAuthStateChange(user);
     } else {
-      // app.jsがまだ読み込まれていない場合はキューに積む
       window._pendingAuthUser = user;
     }
   });
 
-  // ★ onclick属性から呼べるようにグローバル関数として公開
+  // リダイレクト結果を取得（ページ読み込み時）
+  getRedirectResult(auth).then(result => {
+    if (result?.user) {
+      window._fbUser = result.user;
+      if (typeof onAuthStateChange === 'function') onAuthStateChange(result.user);
+    }
+  }).catch(e => { console.warn('redirect result:', e); });
+
+  // ★ onclick属性からグローバル関数として公開
   window.signInGoogle = async function() {
     try {
-      await signInWithPopup(auth, provider);
+      // まずredirectを試みる（GitHub Pages対応）
+      await signInWithRedirect(auth, provider);
     } catch(e) {
-      if (e.code !== 'auth/popup-closed-by-user') {
-        console.error('Login error:', e);
-        if (typeof showToast === 'function') showToast('ログインに失敗しました');
+      // redirectが失敗した場合はpopupにフォールバック
+      try {
+        await signInWithPopup(auth, provider);
+      } catch(e2) {
+        if (e2.code !== 'auth/popup-closed-by-user') {
+          console.error('Login error:', e2);
+          if (typeof showToast === 'function') showToast('ログインに失敗しました');
+        }
       }
     }
   };

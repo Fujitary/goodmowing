@@ -787,39 +787,56 @@ svg { display:block; }
   background: rgba(0,0,0,.18); border-radius: 50%; z-index: 9;
 }
 .demo-char {
-  position: absolute; bottom: 47%;
-  left: 92%; /* 初期位置：右端 */
-  transform: translateX(-50%);
-  z-index: 10; image-rendering: pixelated;
+  position: absolute;
+  bottom: 47%;
+  left: 92%;
+  z-index: 10;
+  image-rendering: pixelated;
 }
 .demo-char img {
   height: 100px; width: auto;
-  image-rendering: pixelated; image-rendering: crisp-edges; display: block;
-}
-.demo-char.standing { animation: cfIdleBob 2s ease-in-out infinite; }
-.demo-char.walking  { animation: cfWalkBob .5s ease-in-out infinite; }
-.demo-char.walking.flipped { animation: cfWalkBobFlip .5s ease-in-out infinite; }
-/* walkL=左向き（元画像のまま）、walkR=右向き（flip） */
-.demo-char.walkL {
-  animation: demoWalkL .5s ease-in-out infinite;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+  display: block;
   transform: translateX(-50%);
 }
-.demo-char.walkR {
-  animation: demoWalkR .5s ease-in-out infinite;
-  transform: translateX(-50%) scaleX(-1);
-}
+/* walkL: 左向き（元画像）ボブ */
 @keyframes demoWalkL {
-  0%,100%{ transform:translateX(-50%) translateY(0); }
-  25%    { transform:translateX(-50%) translateY(-3px); }
-  75%    { transform:translateX(-50%) translateY(2px); }
+  0%,100%{ margin-top: 0; }
+  25%    { margin-top: -3px; }
+  75%    { margin-top: 2px; }
 }
+/* walkR: 右向き（flip）ボブ */
 @keyframes demoWalkR {
-  0%,100%{ transform:translateX(-50%) scaleX(-1) translateY(0); }
-  25%    { transform:translateX(-50%) scaleX(-1) translateY(-3px); }
-  75%    { transform:translateX(-50%) scaleX(-1) translateY(2px); }
+  0%,100%{ margin-top: 0; }
+  25%    { margin-top: -3px; }
+  75%    { margin-top: 2px; }
 }
-.demo-char.idle    { animation: cfIdleBob 2s ease-in-out infinite; transform: translateX(-50%); }
-.demo-char.sleeping { animation: sleep 3s ease-in-out infinite; transform: translateX(-50%); }
+.demo-char.walkL img {
+  transform: translateX(-50%);
+  animation: demoWalkL .5s ease-in-out infinite;
+}
+.demo-char.walkR img {
+  transform: translateX(-50%) scaleX(-1);
+  animation: demoWalkR .5s ease-in-out infinite;
+}
+.demo-char.idle img {
+  transform: translateX(-50%);
+  animation: cfIdleBob 2s ease-in-out infinite;
+}
+@keyframes demoSleep {
+  0%,100%{ margin-top: 0; }
+  50%    { margin-top: -1px; }
+}
+.demo-char.sleeping img {
+  transform: translateX(-50%);
+  animation: demoSleep 3s ease-in-out infinite;
+}
+.demo-shadow {
+  position: absolute; bottom: 50%;
+  transform: translateX(-50%);
+  width: 36px; height: 8px;
+  background: rgba(0,0,0,.2); border-radius: 50%; z-index: 9;
+}
 #demo-particles { position: absolute; inset: 0; pointer-events: none; z-index: 8; }
 
 /* キャッチコピー */
