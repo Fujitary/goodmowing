@@ -607,7 +607,10 @@ function skipDemo() {
 }
 
 function checkShowDemo() {
-  if (window._fbUser || localStorage.getItem('kt_demo_shown')) {
+  // ログイン済み or デモ表示済みならホームへ
+  if (window._fbUser) {
+    navigate('home');
+  } else if (localStorage.getItem('kt_demo_shown')) {
     navigate('home');
   } else {
     navigate('demo');
@@ -2068,19 +2071,14 @@ async function signOutGoogle() {
 function onAuthStateChange(user) {
   updateAuthUI();
 
-  // 初回のauth確定（ログイン済み/未ログイン問わず）
-  if (typeof window._onAuthReady === 'function') {
-    window._onAuthReady();
-    window._onAuthReady = null;
-  }
-
   if (user) {
-    // デモ画面表示中ならホームへ移動
-    if (state.screen === 'demo') {
+    // ログイン済み → デモ画面またはホーム未表示なら即ホームへ
+    if (state.screen === 'demo' || !state.screen || state.screen === '') {
       localStorage.setItem('kt_demo_shown', '1');
       stopDemoAnim();
+      charAnim.init();
       navigate('home');
-      showToast(`✓ ログインしました：${user.displayName}`);
+      showToast(`✓ ようこそ、${user.displayName}さん！`);
     }
     // ニックネームが未設定ならGoogle表示名を初期値に
     const p = DB.profile();
@@ -2089,6 +2087,11 @@ function onAuthStateChange(user) {
       DB.saveProfile(p);
       const nick = qs('#setting-nickname');
       if (nick) nick.value = p.nickname;
+    }
+  } else {
+    // 未ログイン → デモ画面を表示（まだ表示されていなければ）
+    if (state.screen === 'demo' || state.screen === '') {
+      checkShowDemo();
     }
   }
 }
@@ -2523,45 +2526,33 @@ document.addEventListener('DOMContentLoaded', () => {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
 
-  // キャラクター初期化
+  // キャラクター初期化（1回だけ）
   charAnim.init();
 
   // バックグラウンドから復帰時：セッション自動復元
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && state.working) {
-      // 復帰時に経過時間を再計算
       const now = new Date();
       state.elapsedSec = Math.max(0,
         Math.floor((now - state.startTime - state.totalPaused) / 1000));
       updateTimerDisplay();
       updateWorkMetrics();
-      // タイマーが止まっていたら再起動
       if (!state.paused && !timerInterval) startTimerLoop();
     }
   });
 
   // セッション復帰チェック後、デモ画面かホームへ
   if (!restoreSessionIfNeeded()) {
-    // Firebaseの認証状態確定を待ってからデモ/ホームを判定
-    // onAuthStateChangedが必ず1回発火するのを利用
-    window._authResolved = false;
-    const authTimeout = setTimeout(() => {
-      // 800ms経っても発火しない場合（Firebase未設定など）はデモ判定
-      if (!window._authResolved) {
-        window._authResolved = true;
-        checkShowDemo();
-      }
-    }, 800);
-
-    // Firebase module側のonAuthStateChangedがonAuthStateChangeを呼ぶ
-    // → そこでcheckShowDemoを呼ぶように変更
-    window._onAuthReady = () => {
-      if (!window._authResolved) {
-        window._authResolved = true;
-        clearTimeout(authTimeout);
-        checkShowDemo();
-      }
-    };
+    // Firebase module側からキューイングされた認証状態があれば即処理
+    if (window._pendingAuthUser !== undefined) {
+      window._fbUser = window._pendingAuthUser;
+      onAuthStateChange(window._pendingAuthUser);
+      delete window._pendingAuthUser;
+    } else {
+      // まだonAuthStateChangedが発火していない
+      // → デモ画面を即表示し、ログイン済みならonAuthStateChangeで遷移する
+      checkShowDemo();
+    }
   } else {
     const resume = confirm(
       '前回の作業が途中です。\n作業を再開しますか？\n\n' +

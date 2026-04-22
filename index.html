@@ -56,9 +56,15 @@
     orderBy, limit, doc, setDoc, getDoc, serverTimestamp };
 
   // 認証状態の変化を監視
+  // app.jsより先に発火する場合に備えてキューイング
   onAuthStateChanged(auth, user => {
     window._fbUser = user || null;
-    if (typeof onAuthStateChange === 'function') onAuthStateChange(user);
+    if (typeof onAuthStateChange === 'function') {
+      onAuthStateChange(user);
+    } else {
+      // app.jsがまだ読み込まれていない場合はキューに積む
+      window._pendingAuthUser = user;
+    }
   });
 
   // ★ onclick属性から呼べるようにグローバル関数として公開
@@ -66,8 +72,10 @@
     try {
       await signInWithPopup(auth, provider);
     } catch(e) {
-      console.error('Login error:', e);
-      if (typeof showToast === 'function') showToast('ログインに失敗しました');
+      if (e.code !== 'auth/popup-closed-by-user') {
+        console.error('Login error:', e);
+        if (typeof showToast === 'function') showToast('ログインに失敗しました');
+      }
     }
   };
   window.signOutGoogle = async function() {
