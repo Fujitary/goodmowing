@@ -2042,6 +2042,13 @@ async function signOutGoogle() {
 
 function onAuthStateChange(user) {
   updateAuthUI();
+
+  // 初回のauth確定（ログイン済み/未ログイン問わず）
+  if (typeof window._onAuthReady === 'function') {
+    window._onAuthReady();
+    window._onAuthReady = null;
+  }
+
   if (user) {
     // デモ画面表示中ならホームへ移動
     if (state.screen === 'demo') {
@@ -2509,16 +2516,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // セッション復帰チェック後、デモ画面かホームへ
   if (!restoreSessionIfNeeded()) {
-    // Firebase認証状態はonAuthStateChangedで非同期確認されるため
-    // 少し待ってからチェック（Firebaseの初期化を待つ）
-    setTimeout(() => {
-      if (state.screen === 'demo') {
-        // まだデモ画面にいる → authが確定していない状態
-        // fbUserがなければそのままデモ表示継続
+    // Firebaseの認証状態確定を待ってからデモ/ホームを判定
+    // onAuthStateChangedが必ず1回発火するのを利用
+    window._authResolved = false;
+    const authTimeout = setTimeout(() => {
+      // 800ms経っても発火しない場合（Firebase未設定など）はデモ判定
+      if (!window._authResolved) {
+        window._authResolved = true;
+        checkShowDemo();
       }
     }, 800);
-    // まずデモ画面チェック（ログイン済みならhome、初回ならdemo）
-    checkShowDemo();
+
+    // Firebase module側のonAuthStateChangedがonAuthStateChangeを呼ぶ
+    // → そこでcheckShowDemoを呼ぶように変更
+    window._onAuthReady = () => {
+      if (!window._authResolved) {
+        window._authResolved = true;
+        clearTimeout(authTimeout);
+        checkShowDemo();
+      }
+    };
   } else {
     const resume = confirm(
       '前回の作業が途中です。\n作業を再開しますか？\n\n' +

@@ -710,14 +710,17 @@ svg { display:block; }
   background: linear-gradient(160deg, #eae4c4 0%, #f2edd5 100%);
   display: flex; flex-direction: column;
   overflow-y: auto;
+  position: absolute; inset: 0; z-index: 1000;
 }
 #screen-demo.active { display: flex; }
 
 .demo-wrap {
   display: flex; flex-direction: column;
   align-items: center;
-  padding: 0 0 32px;
+  padding: 0 0 40px;
   min-height: 100%;
+  width: 100%;
+  transition: background 2s ease;
 }
 
 /* ロゴ */
@@ -773,9 +776,9 @@ svg { display:block; }
   background: #8abe48;
 }
 .demo-mowed {
-  position: absolute; top: 0; bottom: 0; right: 0;
+  position: absolute; top: 0; bottom: 0; left: 100%;
   background: linear-gradient(90deg, #9acd55, #88bb44);
-  width: 0%; transition: width .15s linear;
+  width: 0%; transition: left .12s linear, width .12s linear;
 }
 .demo-shadow {
   position: absolute; bottom: 50%; left: 80%;
@@ -794,6 +797,15 @@ svg { display:block; }
 .demo-char.standing { animation: cfIdleBob 2s ease-in-out infinite; }
 .demo-char.walking  { animation: cfWalkBob .5s ease-in-out infinite; }
 .demo-char.walking.flipped { animation: cfWalkBobFlip .5s ease-in-out infinite; }
+/* walkL=左向き（元画像のまま）、walkR=右向き（flip） */
+.demo-char.walkL { animation: cfWalkBob .5s ease-in-out infinite; }
+.demo-char.walkR { animation: cfWalkBobFlip .5s ease-in-out infinite; }
+.demo-char.idle  { animation: cfIdleBob 2s ease-in-out infinite; }
+@keyframes sleep {
+  0%,100%{ transform:translateX(-50%) translateY(0); }
+  50%    { transform:translateX(-50%) translateY(-1px); }
+}
+.demo-char.sleeping { animation: sleep 3s ease-in-out infinite; }
 #demo-particles { position: absolute; inset: 0; pointer-events: none; z-index: 8; }
 
 /* キャッチコピー */
