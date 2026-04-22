@@ -726,13 +726,15 @@ svg { display:block; }
   text-align: center;
 }
 .demo-logo-text {
-  font-family: 'Bebas Neue'; font-size: 48px; letter-spacing: .12em;
-  color: var(--khaki2); line-height: 1;
-  text-shadow: 0 2px 12px rgba(74,82,24,.15);
+  font-family: 'Syne', sans-serif; font-size: 38px; font-weight: 800;
+  letter-spacing: -.01em; line-height: 1;
+  background: linear-gradient(135deg, #3a4a10 0%, #7a9228 45%, #4a6018 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  filter: drop-shadow(0 4px 8px rgba(74,82,24,.25));
 }
 .demo-logo-sub {
-  font-family: 'Noto Sans JP'; font-size: 13px; font-weight: 700;
-  color: var(--text-muted); letter-spacing: .2em; margin-top: 2px;
+  font-family: 'Noto Sans JP'; font-size: 14px; font-weight: 700;
+  color: var(--text-muted); letter-spacing: .2em; margin-top: 10px;
 }
 
 /* フィールドアニメ（作業画面のchar-fieldと同じ構造） */
