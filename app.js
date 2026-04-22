@@ -380,48 +380,208 @@ function navigate(screen) {
 }
 
 /* ─────────────────────────────────────
-   DEMO SCREEN
+   DEMO SCREEN - 時間帯・天気対応
 ───────────────────────────────────── */
 let demoAnimId  = null;
-let demoPos     = 80;
+let demoPos     = 92;
 let demoDir     = -1;
-let demoMowed   = 0;
+let demoMinR    = 92;
+let demoMaxR    = 92;
 let demoFlipped = false;
+let demoZzzTimer = null;
 
-function startDemoAnim() {
-  const img = qs('#demo-img');
-  if (img) img.src = CHAR_IMG_MOW;
-  const charEl = qs('#demo-char');
-  if (charEl) { charEl.className = 'demo-char walking'; charEl.style.left = '80%'; }
-  demoPos = 80; demoDir = -1; demoMowed = 0; demoFlipped = false;
-  if (demoAnimId) cancelAnimationFrame(demoAnimId);
+// 時間帯・シーン定義
+const DEMO_SCENES = {
+  dawn:    { label:'🌅 夜明け', sky:'linear-gradient(180deg,#2a1a4a 0%,#c04040 40%,#f07020 70%,#f0c060 100%)', bg:'#f0e8d0', ground:'linear-gradient(180deg,#7aaa38 0%,#4a7820 100%)', groundTop:'#8abe48', sunTop:'38%', sunOpacity:.7, sunColor:'radial-gradient(circle,#ff9040,#ff5020)', cloudOpacity:.7, canWork:true,  isNight:false, isRain:false },
+  morning: { label:'🌤 朝',    sky:'linear-gradient(180deg,#7ab8e0 0%,#b8daf0 100%)', bg:'#f0ead0', ground:'linear-gradient(180deg,#7aaa38 0%,#4a7820 100%)', groundTop:'#8abe48', sunTop:'12%', sunOpacity:1,  sunColor:'radial-gradient(circle,#ffe566,#ffbb00)', cloudOpacity:.85, canWork:true,  isNight:false, isRain:false },
+  noon:    { label:'☀️ 昼間',  sky:'linear-gradient(180deg,#5aaae0 0%,#90c8f0 100%)', bg:'#f0ead0', ground:'linear-gradient(180deg,#78aa38 0%,#4a7820 100%)', groundTop:'#8abe48', sunTop:'8%',  sunOpacity:1,  sunColor:'radial-gradient(circle,#fff566,#ffd000)', cloudOpacity:.85, canWork:true,  isNight:false, isRain:false },
+  evening: { label:'🌇 夕暮れ',sky:'linear-gradient(180deg,#2a3060 0%,#c04820 40%,#f07030 70%,#f8c040 100%)', bg:'#f0dfc0', ground:'linear-gradient(180deg,#6a9030 0%,#3a5818 100%)', groundTop:'#7aaa38', sunTop:'42%', sunOpacity:.8, sunColor:'radial-gradient(circle,#ff8030,#ff4010)', cloudOpacity:.7, canWork:true,  isNight:false, isRain:false },
+  night:   { label:'🌙 夜',    sky:'linear-gradient(180deg,#080818 0%,#101830 60%,#182040 100%)', bg:'#1a1e28', ground:'linear-gradient(180deg,#3a5820 0%,#223010 100%)', groundTop:'#4a7030', sunTop:'15%', sunOpacity:0,  sunColor:'',  cloudOpacity:.3, canWork:false, isNight:true,  isRain:false },
+  rain:    { label:'🌧 雨',    sky:'linear-gradient(180deg,#3a4050 0%,#5a6070 100%)', bg:'#e0ddd0', ground:'linear-gradient(180deg,#5a8830 0%,#3a5820 100%)', groundTop:'#6a9838', sunTop:'15%', sunOpacity:0,  sunColor:'',  cloudOpacity:.95, canWork:false, isNight:false, isRain:true },
+};
+
+function detectDemoScene() {
+  const h = new Date().getHours();
+  if (h >= 4  && h < 6)  return 'dawn';
+  if (h >= 6  && h < 10) return 'morning';
+  if (h >= 10 && h < 15) return 'noon';
+  if (h >= 15 && h < 18) return 'evening';
+  return 'night';
+}
+
+function buildDemoStars() {
+  const el = qs('#demo-stars'); if (!el) return;
+  el.innerHTML = '';
+  for (let i = 0; i < 28; i++) {
+    const s = document.createElement('div');
+    s.className = 'demo-star';
+    const sz = 1 + Math.random() * 2;
+    s.style.cssText = `width:${sz}px;height:${sz}px;top:${Math.random()*85}%;left:${Math.random()*100}%;animation-duration:${2+Math.random()*3}s;animation-delay:${Math.random()*3}s`;
+    el.appendChild(s);
+  }
+}
+
+function buildDemoRain() {
+  const rc = qs('#demo-rain'); if (!rc) return;
+  rc.innerHTML = '';
+  for (let i = 0; i < 55; i++) {
+    const d = document.createElement('div');
+    d.className = 'demo-raindrop';
+    const h = 18 + Math.random() * 25;
+    d.style.cssText = `left:${Math.random()*110-5}%;height:${h}px;animation-duration:${0.5+Math.random()*.5}s;animation-delay:${Math.random()}s;opacity:${0.4+Math.random()*.4}`;
+    rc.appendChild(d);
+  }
+}
+
+function applyDemoScene(sc) {
+  const wrap = qs('#demo-wrap'); if (wrap) wrap.style.background = sc.bg;
+  const sky  = qs('#demo-sky');  if (sky)  sky.style.background  = sc.sky;
+  const ground = qs('#demo-ground'); if (ground) ground.style.background = sc.ground;
+  const gt   = qs('#demo-ground-top'); if (gt) gt.style.background = sc.groundTop;
+
+  // 太陽
+  const sun = qs('#demo-sun');
+  if (sun) { sun.style.opacity = sc.sunOpacity; sun.style.top = sc.sunTop; if (sc.sunColor) sun.style.background = sc.sunColor; }
+
+  // 雲
+  ['demo-cloud1','demo-cloud2'].forEach(id => {
+    const c = qs('#'+id); if (c) c.style.opacity = sc.cloudOpacity;
+  });
+
+  // 月・星（夜）
+  const moon  = qs('#demo-moon');  if (moon)  moon.style.opacity  = sc.isNight ? 1 : 0;
+  const stars = qs('#demo-stars'); if (stars) stars.style.opacity = sc.isNight ? 1 : 0;
+
+  // 雨
+  const rain = qs('#demo-rain'); if (rain) rain.style.opacity = sc.isRain ? 1 : 0;
+
+  // フィーチャーカード
+  const cardStyle = sc.isNight
+    ? 'background:rgba(40,50,70,.6);border:1px solid rgba(100,120,180,.2)'
+    : 'background:rgba(255,252,240,.95);border:1px solid rgba(74,82,24,.15)';
+  ['demo-f1','demo-f2','demo-f3'].forEach(id => {
+    const el = qs('#'+id); if (el) el.style.cssText = cardStyle;
+  });
+
+  // バッジ
+  const badge = qs('#demo-time-badge'); if (badge) badge.textContent = sc.label;
+
+  // キャラ
+  if (sc.canWork) {
+    startDemoWalk();
+  } else {
+    stopDemoWalk(sc.isNight, sc.isRain);
+  }
+}
+
+function startDemoWalk() {
+  clearTimeout(demoZzzTimer);
+  const zzz = qs('#demo-zzz'); if (zzz) zzz.className = 'demo-zzz';
+  const img = qs('#demo-img'); if (img) img.src = CHAR_IMG_MOW;
+  const c   = qs('#demo-char');
+  if (c) { c.style.display = ''; c.style.filter = ''; }
+  const sh  = qs('#demo-shadow'); if (sh) sh.style.display = '';
+
+  if (demoAnimId) return;
   const tick = () => {
-    demoPos += demoDir * 0.18;
-    if (demoPos <= 8)  { demoPos = 8;  demoDir = 1;  demoFlipped = true; }
-    if (demoPos >= 92) { demoPos = 92; demoDir = -1; demoFlipped = false; }
-    const c = qs('#demo-char');
-    if (c) { c.className = 'demo-char walking' + (demoFlipped ? ' flipped' : ''); c.style.left = demoPos + '%'; }
-    const s = qs('#demo-shadow'); if (s) s.style.left = demoPos + '%';
-    const nm = Math.max(demoMowed, 100 - demoPos - 10);
-    if (nm > demoMowed) {
-      demoMowed = Math.min(nm, 90);
-      const m = qs('#demo-mowed'); if (m) m.style.width = demoMowed + '%';
-      if (Math.random() < 0.2) spawnDemoParticle();
+    demoPos += demoDir * 0.2;
+    if (demoPos <= 5)  { demoPos = 5;  demoDir = 1;  demoFlipped = false; }
+    if (demoPos >= 92) { demoPos = 92; demoDir = -1; demoFlipped = true; }
+    if (c) {
+      c.className = 'demo-char ' + (demoDir === -1 ? 'walkL' : 'walkR');
+      c.style.left = demoPos + '%';
     }
+    if (sh) sh.style.left = demoPos + '%';
+    demoMinR = Math.min(demoMinR, demoPos);
+    demoMaxR = Math.max(demoMaxR, demoPos);
+    const mL = demoMinR <= 8  ? 0   : Math.max(demoMinR - 5, 0);
+    const mR = demoMaxR >= 88 ? 100 : Math.min(demoMaxR + 5, 100);
+    const m  = qs('#demo-mowed');
+    if (m) { m.style.left = mL + '%'; m.style.width = (mR - mL) + '%'; }
+    if (Math.random() < 0.18) spawnDemoParticle();
     demoAnimId = requestAnimationFrame(tick);
   };
   demoAnimId = requestAnimationFrame(tick);
 }
 
+function stopDemoWalk(isNight, isRain) {
+  if (demoAnimId) { cancelAnimationFrame(demoAnimId); demoAnimId = null; }
+  const img = qs('#demo-img'); if (img) img.src = CHAR_IMG_STAND;
+  const c   = qs('#demo-char');
+  const sh  = qs('#demo-shadow');
+
+  if (isRain) {
+    if (c)  c.style.display = 'none';
+    if (sh) sh.style.display = 'none';
+    return;
+  }
+  if (c)  { c.style.display = ''; c.style.left = '50%'; c.style.transform = 'translateX(-50%)'; c.style.filter = ''; }
+  if (sh) { sh.style.display = ''; sh.style.left = '50%'; }
+
+  if (isNight && c) {
+    c.className = 'demo-char sleeping';
+    demoZzzTimer = setTimeout(() => {
+      const zzz = qs('#demo-zzz'); if (!zzz) return;
+      zzz.className = 'demo-zzz show';
+      let cnt = 0;
+      const texts = ['z','z z','z z z'];
+      const tick = () => {
+        zzz.textContent = texts[cnt % texts.length];
+        zzz.style.animation = 'none';
+        zzz.offsetHeight;
+        zzz.style.animation = 'floatZzz 2s ease-out forwards';
+        cnt++;
+        demoZzzTimer = setTimeout(tick, 2000);
+      };
+      tick();
+    }, 800);
+  } else if (c) {
+    c.className = 'demo-char idle';
+  }
+}
+
+function startDemoAnim() {
+  demoPos = 92; demoDir = -1; demoMinR = 92; demoMaxR = 92; demoFlipped = true;
+  if (demoAnimId) { cancelAnimationFrame(demoAnimId); demoAnimId = null; }
+  clearTimeout(demoZzzTimer);
+
+  const m = qs('#demo-mowed'); if (m) { m.style.left = '100%'; m.style.width = '0%'; }
+  const zzz = qs('#demo-zzz'); if (zzz) zzz.className = 'demo-zzz';
+
+  buildDemoStars();
+  buildDemoRain();
+
+  const sceneName = detectDemoScene();
+  applyDemoScene(DEMO_SCENES[sceneName]);
+
+  // 天気APIで雨判定
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      const { latitude: lat, longitude: lon } = pos.coords;
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weathercode&timezone=auto`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.current?.weathercode >= 51) {
+            stopDemoWalk(false, false); // 一旦止める
+            applyDemoScene(DEMO_SCENES.rain);
+          }
+        }).catch(() => {});
+    }, () => {});
+  }
+}
+
 function stopDemoAnim() {
   if (demoAnimId) { cancelAnimationFrame(demoAnimId); demoAnimId = null; }
+  clearTimeout(demoZzzTimer);
+  const zzz = qs('#demo-zzz'); if (zzz) zzz.className = 'demo-zzz';
 }
 
 function spawnDemoParticle() {
   const pc = qs('#demo-particles'); if (!pc) return;
   const p = document.createElement('div');
   p.className = 'cf-particle';
-  p.style.cssText = `left:${demoPos+(Math.random()-.5)*8}%;bottom:${49+Math.random()*6}%;height:${4+Math.random()*5}px;background:${'#5aaa20,#7acc30,#4a9018'.split(',')[Math.floor(Math.random()*3)]};transform:rotate(${(Math.random()-.5)*50}deg);opacity:.85`;
+  const colors = ['#5aaa20','#7acc30','#4a9018','#88cc38'];
+  p.style.cssText = `position:absolute;left:${demoPos+(Math.random()-.5)*8}%;bottom:${49+Math.random()*6}%;height:${4+Math.random()*5}px;background:${colors[Math.floor(Math.random()*colors.length)]};transform:rotate(${(Math.random()-.5)*50}deg);opacity:.85;width:3px;border-radius:2px`;
   pc.appendChild(p);
   let op = 0.85;
   const fade = setInterval(() => { op -= 0.08; p.style.opacity = String(op); if (op <= 0) { clearInterval(fade); p.remove(); } }, 30);
