@@ -57,6 +57,23 @@
     window._fbUser = user || null;
     if (typeof onAuthStateChange === 'function') onAuthStateChange(user);
   });
+
+  // ★ onclick属性から呼べるようにグローバル関数として公開
+  window.signInGoogle = async function() {
+    try {
+      await signInWithPopup(auth, provider);
+    } catch(e) {
+      console.error('Login error:', e);
+      if (typeof showToast === 'function') showToast('ログインに失敗しました');
+    }
+  };
+  window.signOutGoogle = async function() {
+    if (!confirm('ログアウトしますか？')) return;
+    await signOut(auth);
+    if (typeof showToast === 'function') showToast('ログアウトしました');
+    if (typeof updateAuthUI === 'function') updateAuthUI();
+  };
+  window.demoSignIn = window.signInGoogle;
 </script>
 </head>
 <body>

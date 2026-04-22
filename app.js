@@ -1841,12 +1841,12 @@ function renderSettings() {
 
 function saveSettings() {
   const p = {
-    weight:           parseFloat(qs('#setting-weight').value) || 60,
-    defaultEquip:     qs('#setting-equip').value,
-    defaultKariMaker: qs('#setting-kari-maker').value,
-    defaultSpider:    qs('#setting-spider').value,
-    defaultHammer:    qs('#setting-hammer').value,
-    nickname:         qs('#setting-nickname')?.value.trim() || '',
+    weight:           parseFloat(qs('#setting-weight')?.value) || 60,
+    defaultEquip:     qs('#setting-equip')?.value || 'kari',
+    defaultKariMaker: qs('#setting-kari-maker')?.value || 'orec',
+    defaultSpider:    qs('#setting-spider')?.value || 'SP851',
+    defaultHammer:    qs('#setting-hammer')?.value || 'HRC662',
+    nickname:         qs('#setting-nickname')?.value?.trim() || '',
   };
   DB.saveProfile(p);
   // Firestoreにもニックネームを同期
@@ -1862,10 +1862,12 @@ async function signInGoogle() {
   if (!fb) { showToast('Firebase未設定です'); return; }
   try {
     const result = await fb.signInWithPopup(fb.auth, fb.provider);
-    showToast(`✓ ログインしました：${result.user.displayName}`);
+    // onAuthStateChangeで処理されるのでここでは何もしない
   } catch (e) {
-    console.error(e);
-    showToast('ログインに失敗しました');
+    if (e.code !== 'auth/popup-closed-by-user') {
+      console.error(e);
+      showToast('ログインに失敗しました');
+    }
   }
 }
 
