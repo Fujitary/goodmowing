@@ -545,6 +545,14 @@ function startDemoAnim() {
   if (demoAnimId) { cancelAnimationFrame(demoAnimId); demoAnimId = null; }
   clearTimeout(demoZzzTimer);
 
+  // キャラ画像・位置を先にセット
+  const img = qs('#demo-img');
+  if (img) img.src = CHAR_IMG_STAND;
+  const c = qs('#demo-char');
+  if (c) { c.style.left = '92%'; c.style.display = ''; c.className = 'demo-char'; }
+  const sh = qs('#demo-shadow');
+  if (sh) { sh.style.left = '92%'; sh.style.display = ''; }
+
   const m = qs('#demo-mowed'); if (m) { m.style.left = '100%'; m.style.width = '0%'; }
   const zzz = qs('#demo-zzz'); if (zzz) zzz.className = 'demo-zzz';
 
@@ -562,7 +570,7 @@ function startDemoAnim() {
         .then(r => r.json())
         .then(d => {
           if (d.current?.weathercode >= 51) {
-            stopDemoWalk(false, false); // 一旦止める
+            stopDemoWalk(false, false);
             applyDemoScene(DEMO_SCENES.rain);
           }
         }).catch(() => {});
@@ -2072,13 +2080,13 @@ function onAuthStateChange(user) {
   updateAuthUI();
 
   if (user) {
-    // ログイン済み → デモ画面またはホーム未表示なら即ホームへ
-    if (state.screen === 'demo' || !state.screen || state.screen === '') {
+    // ログイン済み → 無条件でホームへ（デモ画面でも作業画面でも）
+    // ただし作業中は邪魔しない
+    if (!state.working) {
       localStorage.setItem('kt_demo_shown', '1');
       stopDemoAnim();
-      charAnim.init();
       navigate('home');
-      showToast(`✓ ようこそ、${user.displayName}さん！`);
+      showToast(`✓ ようこそ、${user.displayName || 'ユーザー'}さん！`);
     }
     // ニックネームが未設定ならGoogle表示名を初期値に
     const p = DB.profile();
@@ -2089,9 +2097,9 @@ function onAuthStateChange(user) {
       if (nick) nick.value = p.nickname;
     }
   } else {
-    // 未ログイン → デモ画面を表示（まだ表示されていなければ）
-    if (state.screen === 'demo' || state.screen === '') {
-      checkShowDemo();
+    // 未ログイン → デモ判定（まだデモを見ていない場合のみ）
+    if (!localStorage.getItem('kt_demo_shown') && state.screen !== 'demo') {
+      navigate('demo');
     }
   }
 }
