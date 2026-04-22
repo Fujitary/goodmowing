@@ -375,8 +375,8 @@ function navigate(screen) {
   if (screen === 'map')      renderMap();
   if (screen === 'settings') renderSettings();
   if (screen === 'result')   renderResult();
-  if (screen === 'ranking')  renderRanking();
   if (screen === 'demo')     startDemoAnim();
+  // ranking は記録タブ内のswitchRecTab('ranking')で処理
 }
 
 /* ─────────────────────────────────────
@@ -950,11 +950,10 @@ function selectSpot(id) {
   state.newSpotColor = '#9ee840';
   document.querySelectorAll('.spot-option').forEach(o =>
     o.classList.toggle('selected', o.dataset.id === id));
-  qs('#new-spot-row').classList.toggle('hidden', id !== 'new');
+  qs('#new-spot-row')?.classList.toggle('hidden', id !== 'new');
   if (id === 'new') {
-    qs('#location-status').textContent = '';
-    qs('#btn-attach-location').style.borderColor = 'rgba(158,232,64,.3)';
-    qs('#btn-attach-location').style.color = 'var(--neon)';
+    if (qs('#location-status')) qs('#location-status').textContent = '';
+    if (qs('#btn-attach-location')) { qs('#btn-attach-location').style.borderColor = 'rgba(158,232,64,.3)'; qs('#btn-attach-location').style.color = 'var(--neon)'; }
   }
 }
 
@@ -968,9 +967,10 @@ function selectSpotColor(color) {
 async function attachCurrentLocation() {
   const btn = qs('#btn-attach-location');
   const status = qs('#location-status');
+  if (!btn) return;
   btn.textContent = '📡 位置情報を取得中…';
   btn.style.opacity = '.6';
-  status.textContent = '';
+  if (status) status.textContent = '';
 
   try {
     const pos = await getPosition();
@@ -1897,10 +1897,11 @@ function renderCalendar() {
 }
 
 function renderSpotList() {
+  const el = qs('#spot-list');
+  if (!el) return; // HTMLに存在しない場合はスキップ
   const spots = DB.spots();
   const records = DB.records();
   const now = new Date();
-  const el = qs('#spot-list');
 
   el.innerHTML = spots.map(s => {
     const lastRecs = records.filter(r => r.spotId === s.id).sort((a,b) => b.date.localeCompare(a.date));
@@ -1919,6 +1920,30 @@ function renderSpotList() {
       <div class="spot-status ${statusCls}">${statusTxt}</div>
     </div>`;
   }).join('');
+}
+
+/* ─────────────────────────────────────
+   RECORDS タブ切替
+───────────────────────────────────── */
+function switchRecTab(tab) {
+  const myTab   = qs('#tab-my');
+  const rankTab = qs('#tab-ranking');
+  const myPanel   = qs('#rec-panel-my');
+  const rankPanel = qs('#rec-panel-ranking');
+
+  if (tab === 'my') {
+    if (myTab)    myTab.classList.add('active');
+    if (rankTab)  rankTab.classList.remove('active');
+    if (myPanel)    myPanel.classList.remove('hidden');
+    if (rankPanel)  rankPanel.classList.add('hidden');
+  } else {
+    if (myTab)    myTab.classList.remove('active');
+    if (rankTab)  rankTab.classList.add('active');
+    if (myPanel)    myPanel.classList.add('hidden');
+    if (rankPanel)  rankPanel.classList.remove('hidden');
+    // ランキングを読み込む
+    renderRanking();
+  }
 }
 
 /* ─────────────────────────────────────
@@ -2433,6 +2458,7 @@ function showSpotDetail(id) {
 async function updateSpotLocation(spotId) {
   const btn = qs('#btn-update-loc');
   const status = qs('#spot-loc-status');
+  if (!btn) return;
   if (!btn || !status) return;
 
   btn.innerHTML = '📡 位置情報を取得中…';
