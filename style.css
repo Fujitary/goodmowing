@@ -570,3 +570,316 @@ svg { display:block; }
   .metrics-row { padding-bottom:8px; }
   .fun-bar { margin-bottom:8px; }
 }
+
+/* ══════════════════════════════════════
+   RANKING SCREEN
+══════════════════════════════════════ */
+#screen-ranking { background: linear-gradient(180deg, #eae4c4 0%, #f0ead0 100%); }
+
+.ranking-header {
+  padding:16px 20px 12px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.ranking-title {
+  font-family:'Bebas Neue'; font-size:26px; letter-spacing:.1em; color:var(--khaki);
+}
+
+/* 自分のランクカード */
+.my-rank-card {
+  margin:0 16px 12px;
+  background: linear-gradient(135deg, rgba(106,116,40,.18), rgba(106,116,40,.08));
+  border: 2px solid rgba(106,116,40,.35);
+  border-radius: var(--radius-lg); padding:14px;
+  box-shadow: 0 3px 16px rgba(74,82,24,.12);
+}
+.my-rank-inner { display:flex; align-items:center; gap:12px; }
+.my-rank-left  { text-align:center; min-width:44px; }
+.my-rank-pos   { font-family:'Bebas Neue'; font-size:36px; color:var(--khaki2); line-height:1; }
+.my-rank-center { flex:1; min-width:0; }
+.my-rank-name  { font-size:14px; font-weight:700; color:var(--text-main); margin-bottom:3px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.my-rank-stats { font-size:11px; color:var(--text-muted); }
+.my-rank-right { flex-shrink:0; }
+
+/* 公開ボタン */
+.btn-publish {
+  background: linear-gradient(135deg, var(--khaki2), var(--khaki));
+  border:none; border-radius:12px; padding:8px 14px;
+  font-family:'Noto Sans JP'; font-size:12px; font-weight:700;
+  color:#f5f0d8; cursor:pointer;
+  box-shadow: 0 3px 12px rgba(74,82,24,.25);
+  transition:transform .15s;
+  white-space:nowrap;
+}
+.btn-publish:active { transform:scale(.95); }
+.btn-publish.published {
+  background: rgba(74,82,24,.12);
+  border:1px solid rgba(74,82,24,.25);
+  color:var(--khaki2);
+  box-shadow:none;
+}
+
+/* ログインバナー */
+.login-banner {
+  margin:0 16px 12px;
+  background: rgba(255,252,240,.9);
+  border:1px solid rgba(74,82,24,.18);
+  border-radius: var(--radius-lg);
+  padding:16px;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  box-shadow: 0 2px 10px rgba(74,82,24,.07);
+}
+.login-banner-text { flex:1; }
+
+/* Googleログインボタン */
+.btn-google-login {
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  background: #fff; border:1px solid rgba(0,0,0,.18);
+  border-radius:12px; padding:10px 16px;
+  font-family:'Noto Sans JP'; font-size:13px; font-weight:700; color:#3c4043;
+  cursor:pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.1);
+  transition:box-shadow .2s, transform .15s;
+  white-space:nowrap;
+}
+.btn-google-login:active { transform:scale(.97); }
+.btn-google-login:hover  { box-shadow:0 4px 14px rgba(0,0,0,.15); }
+
+/* ランキングリスト */
+.ranking-list {
+  padding:0 16px;
+  display:flex; flex-direction:column; gap:8px;
+}
+.ranking-item {
+  background: rgba(255,252,240,.92);
+  border:1px solid rgba(74,82,24,.15);
+  border-radius: var(--radius-md);
+  padding:12px 14px;
+  display:flex; align-items:center; gap:12px;
+  box-shadow:0 2px 8px rgba(74,82,24,.06);
+  transition:transform .15s;
+}
+.ranking-item.is-me {
+  border-color:rgba(106,116,40,.4);
+  background:rgba(106,116,40,.1);
+}
+.rank-pos {
+  font-family:'Bebas Neue'; font-size:28px; color:var(--khaki2);
+  min-width:36px; text-align:center; line-height:1;
+}
+.rank-pos.gold   { color:#c8901a; }
+.rank-pos.silver { color:#888; }
+.rank-pos.bronze { color:#a0601a; }
+/* メダル絵文字 */
+.rank-medal { font-size:22px; min-width:36px; text-align:center; }
+
+.rank-body  { flex:1; min-width:0; }
+.rank-name  { font-size:14px; font-weight:700; color:var(--text-main);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:3px; }
+.rank-meta  { font-size:10px; color:var(--text-muted); display:flex; gap:8px; }
+
+.rank-area  { text-align:right; flex-shrink:0; }
+.rank-area-val  { font-family:'Bebas Neue'; font-size:26px; color:var(--khaki2); line-height:1; }
+.rank-area-unit { font-size:9px; color:var(--text-muted); }
+
+/* 空・ローディング */
+.ranking-loading {
+  text-align:center; padding:32px 0;
+}
+.loading-spinner {
+  width:32px; height:32px; margin:0 auto;
+  border:3px solid rgba(74,82,24,.15);
+  border-top-color:var(--khaki2);
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+
+.ranking-empty {
+  text-align:center; padding:32px 16px;
+  color:var(--text-muted); font-size:13px;
+  background:rgba(255,252,240,.7);
+  border:1px solid rgba(74,82,24,.1);
+  border-radius:var(--radius-md);
+}
+
+/* ══════════════════════════════════════
+   DEMO / WELCOME SCREEN
+══════════════════════════════════════ */
+#screen-demo {
+  background: linear-gradient(160deg, #eae4c4 0%, #f2edd5 100%);
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+}
+#screen-demo.active { display: flex; }
+
+.demo-wrap {
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 0 0 32px;
+  min-height: 100%;
+}
+
+/* ロゴ */
+.demo-logo {
+  padding: 40px 0 0;
+  text-align: center;
+}
+.demo-logo-text {
+  font-family: 'Bebas Neue'; font-size: 48px; letter-spacing: .12em;
+  color: var(--khaki2); line-height: 1;
+  text-shadow: 0 2px 12px rgba(74,82,24,.15);
+}
+.demo-logo-sub {
+  font-family: 'Noto Sans JP'; font-size: 13px; font-weight: 700;
+  color: var(--text-muted); letter-spacing: .2em; margin-top: 2px;
+}
+
+/* フィールドアニメ（作業画面のchar-fieldと同じ構造） */
+.demo-field {
+  width: 100%; height: 160px;
+  position: relative; overflow: hidden;
+  margin: 24px 0 0;
+  border-top: 1px solid rgba(74,82,24,.1);
+  border-bottom: 1px solid rgba(74,82,24,.1);
+}
+.demo-sky {
+  position: absolute; top: 0; left: 0; right: 0; height: 55%;
+  background: linear-gradient(180deg, #b0cce0 0%, #cce0ee 100%);
+}
+.demo-cloud {
+  position: absolute; background: rgba(255,255,255,.82); border-radius: 20px;
+  animation: cfCloud linear infinite;
+}
+.demo-cloud::before, .demo-cloud::after {
+  content: ''; position: absolute; background: rgba(255,255,255,.82); border-radius: 50%;
+}
+.demo-cloud1 { width: 60px; height: 18px; top: 25%; animation-duration: 20s; animation-delay: -3s; }
+.demo-cloud1::before { width: 22px; height: 22px; top: -10px; left: 8px; }
+.demo-cloud1::after  { width: 16px; height: 16px; top: -7px; left: 26px; }
+.demo-cloud2 { width: 44px; height: 13px; top: 55%; animation-duration: 15s; animation-delay: -8s; opacity: .7; }
+.demo-cloud2::before { width: 16px; height: 16px; top: -8px; left: 6px; }
+.demo-cloud2::after  { width: 12px; height: 12px; top: -5px; left: 20px; }
+
+.demo-ground {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 50%;
+  background: linear-gradient(180deg, #78aa38 0%, #4a7820 100%);
+  overflow: hidden;
+}
+.demo-ground-top {
+  position: absolute; top: 0; left: 0; right: 0; height: 8px;
+  background: #8abe48;
+}
+.demo-mowed {
+  position: absolute; top: 0; bottom: 0; right: 0;
+  background: linear-gradient(90deg, #9acd55, #88bb44);
+  width: 0%; transition: width .15s linear;
+}
+.demo-shadow {
+  position: absolute; bottom: 50%; left: 80%;
+  transform: translateX(-50%);
+  width: 36px; height: 8px;
+  background: rgba(0,0,0,.18); border-radius: 50%; z-index: 9;
+}
+.demo-char {
+  position: absolute; bottom: 47%; transform: translateX(-50%);
+  z-index: 10; image-rendering: pixelated;
+}
+.demo-char img {
+  height: 100px; width: auto;
+  image-rendering: pixelated; image-rendering: crisp-edges; display: block;
+}
+.demo-char.standing { animation: cfIdleBob 2s ease-in-out infinite; }
+.demo-char.walking  { animation: cfWalkBob .5s ease-in-out infinite; }
+.demo-char.walking.flipped { animation: cfWalkBobFlip .5s ease-in-out infinite; }
+#demo-particles { position: absolute; inset: 0; pointer-events: none; z-index: 8; }
+
+/* キャッチコピー */
+.demo-catch {
+  padding: 24px 28px 0;
+  text-align: center;
+}
+.demo-catch-title {
+  font-family: 'Bebas Neue'; font-size: 26px; letter-spacing: .08em;
+  color: var(--khaki); margin-bottom: 8px;
+}
+.demo-catch-sub {
+  font-size: 13px; color: var(--text-sub); line-height: 1.7;
+}
+
+/* 機能紹介 */
+.demo-features {
+  display: flex; flex-direction: column; gap: 10px;
+  width: 100%; padding: 20px 24px 0;
+}
+.demo-feature {
+  display: flex; align-items: center; gap: 14px;
+  background: rgba(255,252,240,.9);
+  border: 1px solid rgba(74,82,24,.14);
+  border-radius: var(--radius-md); padding: 12px 16px;
+  box-shadow: 0 2px 8px rgba(74,82,24,.06);
+}
+.demo-feature-icon { font-size: 22px; flex-shrink: 0; }
+.demo-feature-text { font-size: 14px; font-weight: 700; color: var(--text-main); }
+
+/* アクションボタン */
+.demo-actions {
+  width: 100%; padding: 24px 24px 0;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.demo-google-btn {
+  width: 100% !important; height: 58px;
+  font-size: 16px !important; font-weight: 700 !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,.15) !important;
+  border-radius: var(--radius-md) !important;
+}
+.demo-skip-btn {
+  background: none; border: none;
+  font-family: 'Noto Sans JP'; font-size: 13px;
+  color: var(--text-muted); cursor: pointer;
+  padding: 8px; text-align: center;
+  text-decoration: underline;
+  transition: color .2s;
+}
+.demo-skip-btn:hover { color: var(--text-sub); }
+
+/* レコードタブ */
+.rec-tabs {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0; margin: 0 16px 14px;
+  background: rgba(74,82,24,.08);
+  border: 1px solid rgba(74,82,24,.15);
+  border-radius: var(--radius-md); overflow: hidden;
+}
+.rec-tab {
+  padding: 11px 8px; text-align: center;
+  font-family: 'Noto Sans JP'; font-size: 13px; font-weight: 700;
+  color: var(--text-muted); cursor: pointer;
+  transition: background .2s, color .2s;
+  background: transparent; border: none;
+}
+.rec-tab.active {
+  background: rgba(255,252,240,.95);
+  color: var(--khaki2);
+  box-shadow: inset 0 0 0 1px rgba(74,82,24,.15);
+}
+
+/* ══════════════════════════════════════
+   FEEDBACK
+══════════════════════════════════════ */
+.fb-cat-btn {
+  padding:8px 4px; border-radius:10px; cursor:pointer;
+  background:rgba(74,82,24,.07); border:1px solid rgba(74,82,24,.16);
+  color:var(--text-muted); font-size:11px; font-weight:700;
+  font-family:'Noto Sans JP',sans-serif;
+  transition:.2s; text-align:center;
+}
+.fb-cat-btn.selected {
+  background:rgba(74,82,24,.2); border-color:rgba(74,82,24,.42); color:var(--khaki);
+}
+.fb-star {
+  font-size:24px; cursor:pointer; color:#c8b060;
+  transition:transform .1s;
+  user-select:none;
+}
+.fb-star:active { transform:scale(.85); }

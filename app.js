@@ -354,10 +354,11 @@ let timerInterval = null;
    ROUTER
 ───────────────────────────────────── */
 function navigate(screen) {
-  // 地図から離れるときLiveトラッキング停止（作業中は継続）
   if (state.screen === 'map' && screen !== 'map' && !state.working) {
     stopLiveTracking();
   }
+  if (state.screen === 'demo' && screen !== 'demo') stopDemoAnim();
+
   state.screen = screen;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -365,12 +366,92 @@ function navigate(screen) {
   if (el) el.classList.add('active');
   const nb = document.getElementById(`nav-${screen}`);
   if (nb) nb.classList.add('active');
-  // render screen
+  // デモ画面ではナビを隠す
+  const nav = document.getElementById('bottom-nav');
+  if (nav) nav.style.display = screen === 'demo' ? 'none' : '';
+
   if (screen === 'home')     renderHome();
   if (screen === 'records')  renderRecords();
   if (screen === 'map')      renderMap();
   if (screen === 'settings') renderSettings();
   if (screen === 'result')   renderResult();
+  if (screen === 'ranking')  renderRanking();
+  if (screen === 'demo')     startDemoAnim();
+}
+
+/* ─────────────────────────────────────
+   DEMO SCREEN
+───────────────────────────────────── */
+let demoAnimId  = null;
+let demoPos     = 80;
+let demoDir     = -1;
+let demoMowed   = 0;
+let demoFlipped = false;
+
+function startDemoAnim() {
+  const img = qs('#demo-img');
+  if (img) img.src = CHAR_IMG_MOW;
+  const charEl = qs('#demo-char');
+  if (charEl) { charEl.className = 'demo-char walking'; charEl.style.left = '80%'; }
+  demoPos = 80; demoDir = -1; demoMowed = 0; demoFlipped = false;
+  if (demoAnimId) cancelAnimationFrame(demoAnimId);
+  const tick = () => {
+    demoPos += demoDir * 0.18;
+    if (demoPos <= 8)  { demoPos = 8;  demoDir = 1;  demoFlipped = true; }
+    if (demoPos >= 92) { demoPos = 92; demoDir = -1; demoFlipped = false; }
+    const c = qs('#demo-char');
+    if (c) { c.className = 'demo-char walking' + (demoFlipped ? ' flipped' : ''); c.style.left = demoPos + '%'; }
+    const s = qs('#demo-shadow'); if (s) s.style.left = demoPos + '%';
+    const nm = Math.max(demoMowed, 100 - demoPos - 10);
+    if (nm > demoMowed) {
+      demoMowed = Math.min(nm, 90);
+      const m = qs('#demo-mowed'); if (m) m.style.width = demoMowed + '%';
+      if (Math.random() < 0.2) spawnDemoParticle();
+    }
+    demoAnimId = requestAnimationFrame(tick);
+  };
+  demoAnimId = requestAnimationFrame(tick);
+}
+
+function stopDemoAnim() {
+  if (demoAnimId) { cancelAnimationFrame(demoAnimId); demoAnimId = null; }
+}
+
+function spawnDemoParticle() {
+  const pc = qs('#demo-particles'); if (!pc) return;
+  const p = document.createElement('div');
+  p.className = 'cf-particle';
+  p.style.cssText = `left:${demoPos+(Math.random()-.5)*8}%;bottom:${49+Math.random()*6}%;height:${4+Math.random()*5}px;background:${'#5aaa20,#7acc30,#4a9018'.split(',')[Math.floor(Math.random()*3)]};transform:rotate(${(Math.random()-.5)*50}deg);opacity:.85`;
+  pc.appendChild(p);
+  let op = 0.85;
+  const fade = setInterval(() => { op -= 0.08; p.style.opacity = String(op); if (op <= 0) { clearInterval(fade); p.remove(); } }, 30);
+}
+
+async function demoSignIn() {
+  const btn = qs('#demo-google-btn');
+  if (btn) { btn.innerHTML = '⏳ ログイン中…'; btn.disabled = true; }
+  try {
+    await signInGoogle();
+  } catch {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>Googleでログインして始める`;
+    }
+  }
+}
+
+function skipDemo() {
+  localStorage.setItem('kt_demo_shown', '1');
+  stopDemoAnim();
+  navigate('home');
+}
+
+function checkShowDemo() {
+  if (window._fbUser || localStorage.getItem('kt_demo_shown')) {
+    navigate('home');
+  } else {
+    navigate('demo');
+  }
 }
 
 /* ─────────────────────────────────────
@@ -1746,26 +1827,353 @@ function exportCSV() {
 ───────────────────────────────────── */
 function renderSettings() {
   const p = DB.profile();
-  qs('#setting-name').value       = p.name || '';
   qs('#setting-weight').value     = p.weight || 60;
   qs('#setting-equip').value      = p.defaultEquip || 'kari';
   qs('#setting-kari-maker').value = p.defaultKariMaker || 'orec';
   qs('#setting-spider').value     = p.defaultSpider || 'SP851';
   qs('#setting-hammer').value     = p.defaultHammer || 'HRC662';
   qs('#setting-badges').textContent = `${DB.badges().length} / ${BADGES_DEF.length} 獲得`;
+  // ニックネーム
+  const nick = qs('#setting-nickname');
+  if (nick) nick.value = p.nickname || '';
+  updateAuthUI();
 }
 
 function saveSettings() {
   const p = {
-    name:             qs('#setting-name').value.trim() || 'ユーザー',
     weight:           parseFloat(qs('#setting-weight').value) || 60,
     defaultEquip:     qs('#setting-equip').value,
     defaultKariMaker: qs('#setting-kari-maker').value,
     defaultSpider:    qs('#setting-spider').value,
     defaultHammer:    qs('#setting-hammer').value,
+    nickname:         qs('#setting-nickname')?.value.trim() || '',
   };
   DB.saveProfile(p);
+  // Firestoreにもニックネームを同期
+  if (window._fbUser && p.nickname) syncNicknameToFirestore(p.nickname);
   showToast('✓ 設定を保存しました / Saved');
+}
+
+/* ─────────────────────────────────────
+   FIREBASE AUTH
+───────────────────────────────────── */
+async function signInGoogle() {
+  const fb = window._fb;
+  if (!fb) { showToast('Firebase未設定です'); return; }
+  try {
+    const result = await fb.signInWithPopup(fb.auth, fb.provider);
+    showToast(`✓ ログインしました：${result.user.displayName}`);
+  } catch (e) {
+    console.error(e);
+    showToast('ログインに失敗しました');
+  }
+}
+
+async function signOutGoogle() {
+  const fb = window._fb;
+  if (!fb) return;
+  if (!confirm('ログアウトしますか？')) return;
+  await fb.signOut(fb.auth);
+  showToast('ログアウトしました');
+  updateAuthUI();
+}
+
+function onAuthStateChange(user) {
+  updateAuthUI();
+  if (user) {
+    // デモ画面表示中ならホームへ移動
+    if (state.screen === 'demo') {
+      localStorage.setItem('kt_demo_shown', '1');
+      stopDemoAnim();
+      navigate('home');
+      showToast(`✓ ログインしました：${user.displayName}`);
+    }
+    // ニックネームが未設定ならGoogle表示名を初期値に
+    const p = DB.profile();
+    if (!p.nickname) {
+      p.nickname = user.displayName || '';
+      DB.saveProfile(p);
+      const nick = qs('#setting-nickname');
+      if (nick) nick.value = p.nickname;
+    }
+  }
+}
+
+function updateAuthUI() {
+  const user = window._fbUser;
+  const loggedOut = qs('#auth-logged-out');
+  const loggedIn  = qs('#auth-logged-in');
+  if (!loggedOut || !loggedIn) return;
+  if (user) {
+    loggedOut.classList.add('hidden');
+    loggedIn.classList.remove('hidden');
+    const nameEl  = qs('#auth-user-name');
+    const emailEl = qs('#auth-user-email');
+    if (nameEl)  nameEl.textContent  = user.displayName || 'ユーザー';
+    if (emailEl) emailEl.textContent = user.email || '';
+  } else {
+    loggedOut.classList.remove('hidden');
+    loggedIn.classList.add('hidden');
+  }
+}
+
+async function syncNicknameToFirestore(nickname) {
+  const fb   = window._fb;
+  const user = window._fbUser;
+  if (!fb || !user) return;
+  try {
+    await fb.setDoc(
+      fb.doc(fb.db, 'users', user.uid),
+      { nickname, updatedAt: fb.serverTimestamp() },
+      { merge: true }
+    );
+  } catch (e) { console.warn('nickname sync failed', e); }
+}
+
+/* ─────────────────────────────────────
+   RANKING
+───────────────────────────────────── */
+function renderRanking() {
+  const now = new Date();
+  const todayStr = dateStr(now);
+  const el = qs('#ranking-date');
+  if (el) el.textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+
+  // ログイン状態によってバナー切替
+  const user = window._fbUser;
+  const banner   = qs('#login-banner');
+  const myCard   = qs('#my-rank-card');
+  if (banner) banner.classList.toggle('hidden', !!user);
+
+  // 今日の自分の最高記録を表示
+  if (user) {
+    const todayRecs = DB.records().filter(r => r.date === todayStr);
+    const best = todayRecs.sort((a,b) => b.area - a.area)[0];
+    if (best && myCard) {
+      myCard.classList.remove('hidden');
+      const p = DB.profile();
+      const h = Math.floor(best.workDuration/3600), m = Math.floor((best.workDuration%3600)/60);
+      qs('#my-rank-name').textContent  = p.nickname || user.displayName || 'あなた';
+      qs('#my-rank-stats').textContent = `${(best.area/100).toFixed(1)}a ／ ${h>0?`${h}時間${m}分`:`${m}分`} ／ ${best.calories}kcal`;
+      qs('#my-rank-pos').textContent   = '—';
+      // 公開済みか確認
+      checkPublished(best);
+    } else if (myCard) {
+      myCard.classList.add('hidden');
+    }
+  } else if (myCard) {
+    myCard.classList.add('hidden');
+  }
+
+  loadRanking();
+}
+
+async function loadRanking() {
+  const fb = window._fb;
+  const listEl    = qs('#ranking-list');
+  const countEl   = qs('#ranking-count');
+  if (!listEl) return;
+
+  listEl.innerHTML = `<div class="ranking-loading"><div class="loading-spinner"></div><div style="font-size:13px;color:var(--text-muted);margin-top:8px">読み込み中…</div></div>`;
+
+  // Firebaseが未設定の場合
+  if (!fb || !window._fb?.db) {
+    listEl.innerHTML = `<div class="ranking-empty">⚙️ Firebase未設定のため表示できません<br><small>設定ファイルにFirebase設定値を入力してください</small></div>`;
+    return;
+  }
+
+  try {
+    const todayStr = dateStr(new Date());
+    const q = fb.query(
+      fb.collection(fb.db, 'rankings'),
+      fb.where('date', '==', todayStr),
+      fb.where('public', '==', true),
+      fb.orderBy('area', 'desc'),
+      fb.limit(50)
+    );
+    const snap = await fb.getDocs(q);
+    const docs = [];
+    snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+
+    if (countEl) countEl.textContent = `${docs.length}件`;
+
+    if (docs.length === 0) {
+      listEl.innerHTML = `<div class="ranking-empty">🌿 今日はまだ記録がありません<br>最初の一刈りを登録しよう！</div>`;
+      return;
+    }
+
+    const myUid = window._fbUser?.uid;
+    listEl.innerHTML = docs.map((r, i) => {
+      const pos   = i + 1;
+      const isMe  = r.uid === myUid;
+      const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : null;
+      const posClass = pos === 1 ? 'gold' : pos === 2 ? 'silver' : pos === 3 ? 'bronze' : '';
+      const te    = TERRAIN[r.terrain] || TERRAIN.flat;
+      const eq    = EQUIP[r.equipment] || EQUIP.other;
+      const h = Math.floor(r.duration/3600), m = Math.floor((r.duration%3600)/60);
+      const timeStr = h > 0 ? `${h}時間${m}分` : `${m}分`;
+      const areaA = (r.area/100).toFixed(1);
+
+      return `<div class="ranking-item${isMe ? ' is-me' : ''}">
+        ${medal
+          ? `<div class="rank-medal">${medal}</div>`
+          : `<div class="rank-pos ${posClass}">${pos}</div>`}
+        <div class="rank-body">
+          <div class="rank-name">${escHtml(r.nickname || '名無し')}${isMe ? ' 👈' : ''}</div>
+          <div class="rank-meta">
+            <span>${te.icon}${te.label}</span>
+            <span>${eq.label}</span>
+            <span>⏱ ${timeStr}</span>
+            ${r.spotName ? `<span>📍${escHtml(r.spotName)}</span>` : ''}
+          </div>
+        </div>
+        <div class="rank-area">
+          <div class="rank-area-val">${areaA}</div>
+          <div class="rank-area-unit">a</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // 自分の順位を更新
+    if (myUid) {
+      const myPos = docs.findIndex(r => r.uid === myUid) + 1;
+      const posEl = qs('#my-rank-pos');
+      if (posEl && myPos > 0) posEl.textContent = myPos;
+    }
+
+  } catch (e) {
+    console.error(e);
+    listEl.innerHTML = `<div class="ranking-empty">⚠️ 読み込みに失敗しました<br><small>${e.message}</small></div>`;
+  }
+}
+
+async function checkPublished(record) {
+  const fb   = window._fb;
+  const user = window._fbUser;
+  const btn  = qs('#btn-publish');
+  if (!fb || !user || !btn) return;
+  try {
+    const docRef = fb.doc(fb.db, 'rankings', `${user.uid}_${record.date}`);
+    const snap   = await fb.getDoc(docRef);
+    if (snap.exists()) {
+      btn.textContent = '✓ 公開済み';
+      btn.classList.add('published');
+      btn.disabled = true;
+    }
+  } catch { /* silent */ }
+}
+
+async function publishTodayRecord() {
+  const fb   = window._fb;
+  const user = window._fbUser;
+  if (!fb || !user) { showToast('ログインが必要です'); return; }
+
+  const todayStr  = dateStr(new Date());
+  const todayRecs = DB.records().filter(r => r.date === todayStr);
+  const best      = todayRecs.sort((a,b) => b.area - a.area)[0];
+  if (!best) { showToast('今日の記録がありません'); return; }
+
+  const p        = DB.profile();
+  const nickname = p.nickname || user.displayName || '名無し';
+  const btn      = qs('#btn-publish');
+  if (btn) { btn.textContent = '送信中…'; btn.disabled = true; }
+
+  try {
+    const docId  = `${user.uid}_${todayStr}`;
+    const docRef = fb.doc(fb.db, 'rankings', docId);
+    await fb.setDoc(docRef, {
+      uid:       user.uid,
+      nickname,
+      date:      todayStr,
+      area:      best.area,
+      duration:  best.workDuration,
+      calories:  best.calories,
+      terrain:   best.terrain,
+      equipment: best.equipment,
+      spotName:  best.spotName || '',
+      public:    true,
+      publishedAt: fb.serverTimestamp(),
+    });
+    showToast('🌐 ランキングに公開しました！');
+    if (btn) { btn.textContent = '✓ 公開済み'; btn.classList.add('published'); }
+    loadRanking();
+  } catch (e) {
+    console.error(e);
+    showToast('公開に失敗しました: ' + e.message);
+    if (btn) { btn.textContent = '🌐 公開する'; btn.disabled = false; }
+  }
+}
+
+/* ─────────────────────────────────────
+   FEEDBACK
+───────────────────────────────────── */
+let fbCat  = 'idea';
+let fbStar = 0;
+
+function selectFbCat(cat) {
+  fbCat = cat;
+  document.querySelectorAll('.fb-cat-btn').forEach(b =>
+    b.classList.toggle('selected', b.dataset.cat === cat)
+  );
+}
+
+function selectFbStar(v) {
+  fbStar = v;
+  document.querySelectorAll('.fb-star').forEach(s => {
+    const sv = parseInt(s.dataset.v);
+    s.textContent = sv <= v ? '★' : '☆';
+  });
+}
+
+async function submitFeedback() {
+  const fb  = window._fb;
+  const text = qs('#fb-text')?.value.trim() || '';
+  const btn  = qs('#fb-submit-btn');
+
+  if (!text) { showToast('内容を入力してください'); return; }
+
+  const user    = window._fbUser;
+  const profile = DB.profile();
+
+  if (btn) { btn.textContent = '送信中…'; btn.disabled = true; }
+
+  const payload = {
+    category:  fbCat,
+    rating:    fbStar,
+    text,
+    nickname:  profile.nickname || (user?.displayName) || '匿名',
+    uid:       user?.uid || null,
+    appVersion:'1.0',
+    userAgent: navigator.userAgent,
+    createdAt: fb ? fb.serverTimestamp() : new Date().toISOString(),
+    records:   DB.records().length,   // 参考情報：使用状況
+  };
+
+  try {
+    if (fb?.db) {
+      // Firestoreに保存
+      await fb.addDoc(fb.collection(fb.db, 'feedbacks'), payload);
+    } else {
+      // Firebase未接続時はlocalStorageに一時保存
+      const saved = JSON.parse(localStorage.getItem('kt_feedbacks') || '[]');
+      saved.push({ ...payload, createdAt: new Date().toISOString() });
+      localStorage.setItem('kt_feedbacks', JSON.stringify(saved));
+    }
+
+    // 送信成功
+    showToast('✓ フィードバックを送信しました！ありがとうございます 🌿');
+    if (qs('#fb-text'))  qs('#fb-text').value = '';
+    fbStar = 0;
+    fbCat  = 'idea';
+    selectFbCat('idea');
+    document.querySelectorAll('.fb-star').forEach(s => s.textContent = '☆');
+    if (btn) { btn.textContent = '📨 送信する / Send'; btn.disabled = false; }
+
+  } catch (e) {
+    console.error(e);
+    showToast('送信に失敗しました: ' + e.message);
+    if (btn) { btn.textContent = '📨 送信する / Send'; btn.disabled = false; }
+  }
 }
 
 function clearAllData() {
@@ -1937,8 +2345,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 起動時に未完了セッションがあれば復帰確認
-  if (restoreSessionIfNeeded()) {
+  // セッション復帰チェック後、デモ画面かホームへ
+  if (!restoreSessionIfNeeded()) {
+    // Firebase認証状態はonAuthStateChangedで非同期確認されるため
+    // 少し待ってからチェック（Firebaseの初期化を待つ）
+    setTimeout(() => {
+      if (state.screen === 'demo') {
+        // まだデモ画面にいる → authが確定していない状態
+        // fbUserがなければそのままデモ表示継続
+      }
+    }, 800);
+    // まずデモ画面チェック（ログイン済みならhome、初回ならdemo）
+    checkShowDemo();
+  } else {
     const resume = confirm(
       '前回の作業が途中です。\n作業を再開しますか？\n\n' +
       `経過時間: ${Math.floor(state.elapsedSec/60)}分${state.elapsedSec%60}秒`
