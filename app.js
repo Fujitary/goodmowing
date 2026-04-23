@@ -382,9 +382,158 @@ function navigate(screen) {
   // ranking は記録タブ内のswitchRecTab('ranking')で処理
 }
 
-/* ─────────────────────────────────────
-   DEMO SCREEN - 時間帯・天気対応
-───────────────────────────────────── */
+/* ── ホームフィールドアニメーション（デモと同じシーン） ── */
+let homeAnimId = null;
+let homePos = 92, homeDir = -1, homeMinR = 92, homeMaxR = 92;
+let homeZzzTimer = null;
+
+function startHomeFieldAnim() {
+  if (homeAnimId) { cancelAnimationFrame(homeAnimId); homeAnimId = null; }
+  clearTimeout(homeZzzTimer);
+
+  // ID名をhome-*に差し替えてデモと同じシーンを適用
+  const img = qs('#home-char-img');
+  if (img) img.src = CHAR_IMG_STAND;
+  const c = qs('#home-char');
+  if (c) { c.style.left = '92%'; c.style.display = ''; }
+  const sh = qs('#home-shadow');
+  if (sh) { sh.style.left = '92%'; }
+  const m = qs('#home-mowed');
+  if (m) { m.style.left = '100%'; m.style.width = '0%'; }
+  const zzz = qs('#home-zzz');
+  if (zzz) zzz.className = 'demo-zzz';
+
+  // 星・雨を生成
+  _buildFieldStars('home-stars');
+  _buildFieldRain('home-rain');
+
+  // シーン適用（IDをhome-*に変えて）
+  const sceneName = detectDemoScene();
+  _applyFieldScene(sceneName, 'home');
+}
+
+function _buildFieldStars(id) {
+  const el = qs('#' + id); if (!el) return;
+  el.innerHTML = '';
+  for (let i = 0; i < 20; i++) {
+    const s = document.createElement('div');
+    s.className = 'demo-star';
+    const sz = 1 + Math.random() * 2;
+    s.style.cssText = `width:${sz}px;height:${sz}px;top:${Math.random()*85}%;left:${Math.random()*100}%;animation-duration:${2+Math.random()*3}s;animation-delay:${Math.random()*3}s`;
+    el.appendChild(s);
+  }
+}
+
+function _buildFieldRain(id) {
+  const rc = qs('#' + id); if (!rc) return;
+  rc.innerHTML = '';
+  for (let i = 0; i < 40; i++) {
+    const d = document.createElement('div');
+    d.className = 'demo-raindrop';
+    const h = 18 + Math.random() * 25;
+    d.style.cssText = `left:${Math.random()*110-5}%;height:${h}px;animation-duration:${0.5+Math.random()*.5}s;animation-delay:${Math.random()}s;opacity:${0.4+Math.random()*.4}`;
+    rc.appendChild(d);
+  }
+}
+
+function _applyFieldScene(sceneName, prefix) {
+  const sc = DEMO_SCENES[sceneName];
+  if (!sc) return;
+  const $ = id => qs(`#${prefix}-${id}`);
+  const sky = $('sky'); if (sky) sky.style.background = sc.sky;
+  const ground = $('ground'); if (ground) ground.style.background = sc.ground;
+  const gt = $('ground-top'); if (gt) gt.style.background = sc.groundTop;
+  const sun = $('sun');
+  if (sun) { sun.style.opacity = sc.sunOpacity; sun.style.top = sc.sunTop; if (sc.sunColor) sun.style.background = sc.sunColor; }
+  [`${prefix}-cloud1`, `${prefix}-cloud2`].forEach(id => {
+    const c = qs('#' + id); if (c) c.style.opacity = sc.cloudOpacity;
+  });
+  const moon = $('moon'); if (moon) moon.style.opacity = sc.isNight ? 1 : 0;
+  const stars = $('stars'); if (stars) stars.style.opacity = sc.isNight ? 1 : 0;
+  const rain = $('rain'); if (rain) rain.style.opacity = sc.isRain ? 1 : 0;
+  const badge = $('time-badge'); if (badge) badge.textContent = sc.label;
+
+  // ホーム画面のフィールドも天気API連動
+  if (navigator.geolocation && prefix === 'home') {
+    navigator.geolocation.getCurrentPosition(pos => {
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&current=weathercode&timezone=auto`)
+        .then(r => r.json()).then(d => {
+          if (d.current?.weathercode >= 51) _applyFieldScene('rain', prefix);
+        }).catch(() => {});
+    }, () => {});
+  }
+
+  // キャラ
+  if (sc.canWork) {
+    _startFieldWalk(prefix);
+  } else {
+    _stopFieldWalk(prefix, sc.isNight, sc.isRain);
+  }
+}
+
+function _startFieldWalk(prefix) {
+  clearTimeout(homeZzzTimer);
+  const img = qs(`#${prefix}-char-img`); if (img) img.src = CHAR_IMG_MOW;
+  const c = qs(`#${prefix}-char`);
+  if (c) { c.style.display = ''; c.style.filter = ''; }
+  const sh = qs(`#${prefix}-shadow`); if (sh) sh.style.display = '';
+  if (homeAnimId) return;
+  homePos = 92; homeDir = -1; homeMinR = 92; homeMaxR = 92;
+  const tick = () => {
+    homePos += homeDir * 0.2;
+    if (homePos <= 5)  { homePos = 5;  homeDir = 1; }
+    if (homePos >= 92) { homePos = 92; homeDir = -1; }
+    const ch = qs(`#${prefix}-char`);
+    if (ch) { ch.className = 'demo-char ' + (homeDir === -1 ? 'walkL' : 'walkR'); ch.style.left = homePos + '%'; }
+    const s = qs(`#${prefix}-shadow`); if (s) s.style.left = homePos + '%';
+    homeMinR = Math.min(homeMinR, homePos);
+    homeMaxR = Math.max(homeMaxR, homePos);
+    const mL = homeMinR <= 8 ? 0 : Math.max(homeMinR - 5, 0);
+    const mR = homeMaxR >= 88 ? 100 : Math.min(homeMaxR + 5, 100);
+    const mo = qs(`#${prefix}-mowed`);
+    if (mo) { mo.style.left = mL + '%'; mo.style.width = (mR - mL) + '%'; }
+    if (Math.random() < 0.15) _spawnFieldParticle(prefix);
+    homeAnimId = requestAnimationFrame(tick);
+  };
+  homeAnimId = requestAnimationFrame(tick);
+}
+
+function _stopFieldWalk(prefix, isNight, isRain) {
+  if (homeAnimId) { cancelAnimationFrame(homeAnimId); homeAnimId = null; }
+  const img = qs(`#${prefix}-char-img`); if (img) img.src = CHAR_IMG_STAND;
+  const c = qs(`#${prefix}-char`);
+  const sh = qs(`#${prefix}-shadow`);
+  if (isRain) {
+    if (c) c.style.display = 'none';
+    if (sh) sh.style.display = 'none';
+    return;
+  }
+  if (c) { c.style.display = ''; c.style.left = '50%'; c.style.filter = ''; }
+  if (sh) { sh.style.display = ''; sh.style.left = '50%'; }
+  if (isNight && c) {
+    c.className = 'demo-char sleeping';
+    homeZzzTimer = setTimeout(() => {
+      const zzz = qs(`#${prefix}-zzz`); if (!zzz) return;
+      zzz.className = 'demo-zzz show';
+      let cnt = 0; const texts = ['z','z z','z z z'];
+      const tick = () => { zzz.textContent = texts[cnt%texts.length]; zzz.style.animation='none'; zzz.offsetHeight; zzz.style.animation='floatZzz 2s ease-out forwards'; cnt++; homeZzzTimer = setTimeout(tick, 2000); };
+      tick();
+    }, 800);
+  } else if (c) {
+    c.className = 'demo-char idle';
+  }
+}
+
+function _spawnFieldParticle(prefix) {
+  const pc = qs(`#${prefix}-particles`); if (!pc) return;
+  const p = document.createElement('div');
+  p.className = 'cf-particle';
+  const colors = ['#5aaa20','#7acc30','#4a9018'];
+  p.style.cssText = `position:absolute;left:${homePos+(Math.random()-.5)*8}%;bottom:${49+Math.random()*6}%;height:${4+Math.random()*5}px;background:${colors[Math.floor(Math.random()*colors.length)]};transform:rotate(${(Math.random()-.5)*50}deg);opacity:.85;width:3px;border-radius:2px`;
+  pc.appendChild(p);
+  let op = 0.85;
+  const fade = setInterval(() => { op -= 0.08; p.style.opacity = String(op); if (op <= 0) { clearInterval(fade); p.remove(); } }, 30);
+}
 let demoAnimId  = null;
 let demoPos     = 92;
 let demoDir     = -1;
@@ -648,10 +797,13 @@ function renderHome() {
   // Weather
   fetchWeather();
 
+  // ホームフィールドアニメーション（デモと同じシーン）
+  startHomeFieldAnim();
+
   // Recent records
   const list = qs('#home-record-list');
   if (records.length === 0) {
-    list.innerHTML = `<div style="text-align:center;padding:24px;color:rgba(255,255,255,.3);font-size:13px">まだ記録がありません<br><small>作業を開始してみましょう！</small></div>`;
+    list.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px">まだ記録がありません<br><small>作業を開始してみましょう！</small></div>`;
     return;
   }
   list.innerHTML = records.slice(0, 5).map(r => recordCardHTML(r)).join('');
@@ -1049,6 +1201,12 @@ function beginSession() {
   // バックグラウンド対応：セッション情報を保存
   saveSessionState();
 
+  // 作業開始エリア非表示→作業中エリア表示
+  const sa = qs('#work-start-area'); if (sa) sa.style.display = 'none';
+  const wa = qs('#work-active-area'); if (wa) wa.style.display = '';
+  // ホームフィールドのアニメ停止
+  if (homeAnimId) { cancelAnimationFrame(homeAnimId); homeAnimId = null; }
+
   renderWorkScreen();
   charAnim.reset();
   charAnim.start();
@@ -1277,6 +1435,9 @@ function endWork() {
   if (!confirm('作業を終了して記録を保存しますか？')) return;
   charAnim.stop();
   localStorage.removeItem('kt_session'); // セッションクリア
+  // 作業エリアをリセット
+  const sa2 = qs('#work-start-area'); if (sa2) sa2.style.display = '';
+  const wa2 = qs('#work-active-area'); if (wa2) wa2.style.display = 'none';
   stopGPS();
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
 

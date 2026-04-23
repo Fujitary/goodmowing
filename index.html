@@ -190,6 +190,28 @@
       </div>
     </div>
 
+    <!-- ホームのデモフィールド（天気・時間帯連動） -->
+    <div class="home-field" id="home-field">
+      <div class="demo-sky" id="home-sky"></div>
+      <div class="demo-stars" id="home-stars"></div>
+      <div class="demo-moon" id="home-moon"></div>
+      <div class="demo-sun" id="home-sun"></div>
+      <div class="demo-rain" id="home-rain"></div>
+      <div class="demo-cloud demo-cloud1" id="home-cloud1"></div>
+      <div class="demo-cloud demo-cloud2" id="home-cloud2"></div>
+      <div class="demo-ground" id="home-ground">
+        <div class="demo-ground-top" id="home-ground-top"></div>
+        <div class="demo-mowed" id="home-mowed"></div>
+      </div>
+      <div class="demo-shadow" id="home-shadow"></div>
+      <div class="demo-zzz" id="home-zzz">z z z</div>
+      <div class="demo-time-badge" id="home-time-badge"></div>
+      <div class="demo-char" id="home-char">
+        <img id="home-char-img" src="" alt="">
+      </div>
+      <div id="home-particles"></div>
+    </div>
+
     <div class="stats-strip">
       <div class="stat-pill">
         <div class="stat-pill-val" id="stat-month-area">—</div>
@@ -205,15 +227,7 @@
       </div>
     </div>
 
-    <div class="start-wrap">
-      <button class="btn-primary" id="btn-start-work">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        <span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.15">
-          <span>作業を開始する</span>
-          <span style="font-size:14px;opacity:.7;letter-spacing:.06em">Start Work</span>
-        </span>
-      </button>
-    </div>
+
 
     <div class="section-header">最近の作業 / Recent Records</div>
     <div class="record-list" id="home-record-list"></div>
@@ -226,21 +240,35 @@
   ══════════════════════════════ -->
   <div class="screen" id="screen-work">
 
-    <div class="work-header">
-      <div class="work-label">作業中 / Working</div>
-      <div class="work-equipment" id="work-equipment-label">—</div>
+    <!-- 作業開始ボタン（未作業時のみ表示） -->
+    <div id="work-start-area" style="padding:56px 16px 0">
+      <button class="btn-primary" id="btn-start-work" style="height:64px;font-size:24px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.2">
+          <span>作業を開始する</span>
+          <span style="font-size:13px;opacity:.7;letter-spacing:.06em">Start Work</span>
+        </span>
+      </button>
     </div>
 
-    <div class="timer-wrap">
-      <div class="timer-ring-container">
-        <svg viewBox="0 0 210 210">
-          <circle class="ring-bg"   cx="105" cy="105" r="96"/>
-          <circle class="ring-prog" cx="105" cy="105" r="96" id="ring-prog"/>
-        </svg>
-        <div class="timer-center">
-          <div class="timer-display" id="timer-display">00:00</div>
-          <div class="timer-sublabel">経過時間 / Elapsed</div>
-          <div class="timer-gps no-gps" id="gps-status">📵 GPS待機中…</div>
+    <!-- 作業中UI（作業開始後に表示） -->
+    <div id="work-active-area" style="display:none">
+      <div class="work-header">
+        <div class="work-label">作業中 / Working</div>
+        <div class="work-equipment" id="work-equipment-label">—</div>
+      </div>
+
+      <div class="timer-wrap" style="padding:10px 20px 6px">
+        <div class="timer-ring-container" style="width:160px;height:160px">
+          <svg viewBox="0 0 210 210">
+            <circle class="ring-bg"   cx="105" cy="105" r="96"/>
+            <circle class="ring-prog" cx="105" cy="105" r="96" id="ring-prog"/>
+          </svg>
+          <div class="timer-center">
+            <div class="timer-display" id="timer-display" style="font-size:42px">00:00</div>
+            <div class="timer-sublabel" style="font-size:9px">経過時間</div>
+            <div class="timer-gps no-gps" id="gps-status" style="font-size:9px">📵 GPS待機中…</div>
+          </div>
         </div>
       </div>
     </div>
