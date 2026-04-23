@@ -253,6 +253,7 @@
 
     <!-- 作業中UI（作業開始後に表示） -->
     <div id="work-active-area" style="display:none">
+
       <div class="work-header">
         <div class="work-label">作業中 / Working</div>
         <div class="work-equipment" id="work-equipment-label">—</div>
@@ -271,60 +272,53 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- ── キャラクターフィールド ── -->
-    <div class="char-field" id="char-field">
-      <!-- 空 -->
-      <div class="cf-sky">
-        <div class="cf-cloud cf-cloud1"></div>
-        <div class="cf-cloud cf-cloud2"></div>
+      <!-- ── キャラクターフィールド ── -->
+      <div class="char-field" id="char-field">
+        <div class="cf-sky">
+          <div class="cf-cloud cf-cloud1"></div>
+          <div class="cf-cloud cf-cloud2"></div>
+        </div>
+        <div class="cf-ground">
+          <div class="cf-ground-top"></div>
+          <div class="cf-mowed" id="cf-mowed"></div>
+        </div>
+        <div class="cf-shadow" id="cf-shadow"></div>
+        <div class="cf-char standing" id="cf-char">
+          <img id="cf-img" src="" alt="キャラクター">
+        </div>
+        <div id="cf-particles"></div>
       </div>
-      <!-- 草原 -->
-      <div class="cf-ground">
-        <div class="cf-ground-top"></div>
-        <div class="cf-mowed" id="cf-mowed"></div>
-      </div>
-      <!-- 影 -->
-      <div class="cf-shadow" id="cf-shadow"></div>
-      <!-- キャラ -->
-      <div class="cf-char standing" id="cf-char">
-        <img id="cf-img" src="" alt="キャラクター">
-      </div>
-      <!-- 草パーティクルコンテナ -->
-      <div id="cf-particles"></div>
-    </div>
 
-    <div class="metrics-row">
-      <div class="metric-card">
-        <div class="metric-val" id="metric-area">0.0</div>
-        <div class="metric-unit">a（推定）</div>
-        <div class="metric-lbl">刈取面積 / Area</div>
-        <div class="metric-sub">GPS算出</div>
+      <div class="metrics-row">
+        <div class="metric-card">
+          <div class="metric-val" id="metric-area">0.0</div>
+          <div class="metric-unit">a（推定）</div>
+          <div class="metric-lbl">刈取面積 / Area</div>
+          <div class="metric-sub">GPS算出</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-val" id="metric-kcal">0</div>
+          <div class="metric-unit">kcal</div>
+          <div class="metric-lbl">消費カロリー</div>
+          <div class="metric-sub">MET×地形係数</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-val" id="metric-efficiency">—</div>
+          <div class="metric-unit">a/h</div>
+          <div class="metric-lbl">作業効率</div>
+          <div class="metric-sub">今日のペース</div>
+        </div>
       </div>
-      <div class="metric-card">
-        <div class="metric-val" id="metric-kcal">0</div>
-        <div class="metric-unit">kcal</div>
-        <div class="metric-lbl">消費カロリー</div>
-        <div class="metric-sub">MET×地形係数</div>
+
+      <div class="fun-bar">
+        <div class="fun-bar-icon">🌿</div>
+        <div class="fun-bar-text" id="fun-bar-text">作業開始後に表示されます</div>
       </div>
-      <div class="metric-card">
-        <div class="metric-val" id="metric-efficiency">—</div>
-        <div class="metric-unit">a/h</div>
-        <div class="metric-lbl">作業効率</div>
-        <div class="metric-sub">今日のペース</div>
-      </div>
-    </div>
 
-    <div class="fun-bar">
-      <div class="fun-bar-icon">🌿</div>
-      <div class="fun-bar-text" id="fun-bar-text">作業開始後に表示されます</div>
-    </div>
+      <div class="safety-warn" id="work-safety"></div>
 
-      <div class="terrain-grid" id="work-terrain-grid"></div>
-    </div>
-
-    <div class="safety-warn" id="work-safety"></div>
+    </div><!-- /work-active-area -->
 
     <div class="work-controls">
       <button class="btn-pause" id="btn-pause">
