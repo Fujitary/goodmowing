@@ -292,9 +292,7 @@ const BADGES_DEF = [
 ];
 
 const DEFAULT_SPOTS = [
-  { id: 'spot1', name: '高仙の里よの 南法面', color: '#9ee840', targetFreq: 4, terrain: 'steep',  area: 1200, lastMowed: null, memo: '' },
-  { id: 'spot2', name: '田んぼ西側畦畔',      color: '#6ab82e', targetFreq: 6, terrain: 'flat',   area: 2500, lastMowed: null, memo: '' },
-  { id: 'spot3', name: 'R313沿い道路脇草地',  color: '#e8a020', targetFreq: 3, terrain: 'gentle', area:  800, lastMowed: null, memo: '' },
+
 ];
 
 const FOOD_EQUIV = [
@@ -391,12 +389,6 @@ function startHomeFieldAnim() {
   if (homeAnimId) { cancelAnimationFrame(homeAnimId); homeAnimId = null; }
   clearTimeout(homeZzzTimer);
 
-  // フィールド全体を最初は不可視（天気確定後に表示してちらつき防止）
-  const field = qs('#home-field');
-  if (field) field.style.opacity = '0';
-
-  const img = qs('#home-char-img');
-  if (img) img.src = CHAR_IMG_STAND;
   const c = qs('#home-char');
   if (c) { c.style.left = '92%'; c.style.display = 'none'; }
   const sh = qs('#home-shadow');
@@ -411,14 +403,20 @@ function startHomeFieldAnim() {
   _buildFieldStars('home-stars');
   _buildFieldRain('home-rain');
 
-  // まず時間帯シーンを適用（天気API前）
+  // まず時間帯シーンを即座に適用
   const sceneName = detectDemoScene();
+  _applyFieldSceneNoWeather(sceneName, 'home');
 
-  // 天気API結果を待ってから最終シーンを決定・表示
-  _resolveWeatherAndApply(sceneName, 'home', () => {
-    // 完了後にフェードイン
-    if (field) { field.style.transition = 'opacity .6s'; field.style.opacity = '1'; }
-  });
+  // 天気APIで後から雨に上書き（成功した場合のみ）
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&current=weathercode&timezone=auto`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.current?.weathercode >= 51) _applyFieldSceneNoWeather('rain', 'home');
+        }).catch(() => {});
+    }, () => {}, { timeout: 3000, maximumAge: 60000 });
+  }
 }
 
 // 天気APIを取得してからシーンを適用する関数
@@ -675,8 +673,9 @@ function startDemoWalk() {
   const zzz = qs('#demo-zzz'); if (zzz) zzz.className = 'demo-zzz';
   const img = qs('#demo-img'); if (img) img.src = CHAR_IMG_MOW;
   const c   = qs('#demo-char');
-  if (c) { c.style.display = ''; c.style.filter = ''; }
-  const sh  = qs('#demo-shadow'); if (sh) sh.style.display = '';
+  if (c) { c.style.display = ''; c.style.filter = ''; c.style.left = demoPos + '%'; }
+  const sh  = qs('#demo-shadow');
+  if (sh) { sh.style.display = ''; sh.style.left = demoPos + '%'; }
 
   if (demoAnimId) return;
   const tick = () => {
@@ -741,30 +740,27 @@ function startDemoAnim() {
   if (demoAnimId) { cancelAnimationFrame(demoAnimId); demoAnimId = null; }
   clearTimeout(demoZzzTimer);
 
-  // フィールドを最初は不可視
-  const field = qs('#demo-field');
-  if (field) field.style.opacity = '0';
-
-  const img = qs('#demo-img');
-  if (img) img.src = CHAR_IMG_STAND;
-  const c = qs('#demo-char');
-  if (c) { c.style.left = '92%'; c.style.display = 'none'; c.className = 'demo-char'; }
-  const sh = qs('#demo-shadow');
-  if (sh) { sh.style.left = '92%'; sh.style.display = 'none'; }
-
   const m = qs('#demo-mowed'); if (m) { m.style.left = '100%'; m.style.width = '0%'; }
   const zzz = qs('#demo-zzz'); if (zzz) zzz.className = 'demo-zzz';
 
   buildDemoStars();
   buildDemoRain();
 
+  // まず時間帯シーンを即座に適用（フィールドを表示）
   const sceneName = detectDemoScene();
+  applyDemoScene(DEMO_SCENES[sceneName]);
 
-  // 天気確定後にシーン適用→フェードイン
-  _resolveWeatherAndApply(sceneName, 'demo-special', (finalScene) => {
-    applyDemoScene(DEMO_SCENES[finalScene]);
-    if (field) { field.style.transition = 'opacity .6s'; field.style.opacity = '1'; }
-  });
+  // 天気APIで後から雨に上書き（成功した場合のみ）
+  if (navigator.geolocation) {
+    const timer = setTimeout(() => {}, 0); // ダミー
+    navigator.geolocation.getCurrentPosition(pos => {
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&current=weathercode&timezone=auto`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.current?.weathercode >= 51) applyDemoScene(DEMO_SCENES.rain);
+        }).catch(() => {});
+    }, () => {}, { timeout: 3000, maximumAge: 60000 });
+  }
 }
 
 function stopDemoAnim() {
@@ -1348,17 +1344,11 @@ function renderWorkScreen() {
   qs('#work-equipment-label').textContent =
     `${eq.label}${modelDetail} ／ ${te.label} ${te.stars}`;
 
-  // 地形は作業前に固定 → 表示のみ（変更不可）
-  const grid = qs('#work-terrain-grid');
-  grid.innerHTML = Object.entries(TERRAIN).map(([k, t]) =>
-    `<div class="terrain-btn${state.terrain === k ? ' active' : ''}" style="cursor:default;opacity:${state.terrain === k ? 1 : 0.38}">
-      <span class="t-icon">${t.icon}</span>${t.label}<br><small>${t.stars}</small>
-    </div>`
-  ).join('');
-
-  // 固定中の注意書き
-  const label = qs('#terrain-fixed-label');
-  if (label) label.style.display = 'block';
+  // 待機中キャラ初期化
+  const idleImg = qs('#work-idle-img');
+  if (idleImg && !idleImg.src.includes('data:')) idleImg.src = CHAR_IMG_STAND;
+  const idleCh = qs('#work-idle-char');
+  if (idleCh) idleCh.className = 'cf-char idle';
 }
 
 function startTimerLoop() {
@@ -1468,7 +1458,7 @@ function togglePause() {
 
 function endWork() {
   if (!state.working) return;
-  if (state.elapsedSec < 10) { showToast('作業時間が短すぎます'); return; }
+  if (state.elapsedSec < 60) { showToast('作業時間が短すぎます（1分以上作業してください）'); return; }
   if (!confirm('作業を終了して記録を保存しますか？')) return;
   charAnim.stop();
   localStorage.removeItem('kt_session'); // セッションクリア
@@ -2567,8 +2557,8 @@ async function submitFeedback() {
     }
 
     // 送信成功
-    showToast('✓ フィードバックを送信しました！ありがとうございます 🌿');
-    if (qs('#fb-text'))  qs('#fb-text').value = '';
+    showToast('✓ フィードバックを送信しました！ 🌿');
+    if (qs('#fb-text')) { qs('#fb-text').value = ''; qs('#fb-text').blur(); }
     fbStar = 0;
     fbCat  = 'idea';
     selectFbCat('idea');

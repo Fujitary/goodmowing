@@ -240,15 +240,33 @@
   ══════════════════════════════ -->
   <div class="screen" id="screen-work">
 
-    <!-- 作業開始ボタン（未作業時のみ表示） -->
-    <div id="work-start-area" style="padding:56px 16px 0">
-      <button class="btn-primary" id="btn-start-work" style="height:64px;font-size:24px">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        <span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.2">
-          <span>作業を開始する</span>
-          <span style="font-size:13px;opacity:.7;letter-spacing:.06em">Start Work</span>
-        </span>
+    <!-- 作業開始前UI -->
+    <div id="work-start-area">
+
+      <!-- キャラフィールド（待機中） -->
+      <div class="char-field" id="work-idle-field">
+        <div class="cf-sky">
+          <div class="cf-cloud cf-cloud1"></div>
+          <div class="cf-cloud cf-cloud2"></div>
+        </div>
+        <div class="cf-ground">
+          <div class="cf-ground-top"></div>
+        </div>
+        <div class="cf-shadow" id="work-idle-shadow"></div>
+        <div class="cf-char standing" id="work-idle-char">
+          <img id="work-idle-img" src="" alt="">
+        </div>
+      </div>
+
+      <!-- 大きなタイマー（タップで開始） -->
+      <button id="btn-start-work" class="work-idle-timer-btn" onclick="openStartModal()">
+        <div class="work-idle-timer-ring">
+          <div class="work-idle-timer-time">00:00</div>
+          <div class="work-idle-timer-label">タップして開始</div>
+          <div class="work-idle-timer-sub">TAP TO START</div>
+        </div>
       </button>
+
     </div>
 
     <!-- 作業中UI（作業開始後に表示） -->

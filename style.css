@@ -753,7 +753,7 @@ svg { display:block; }
 }
 .demo-sky {
   position: absolute; top: 0; left: 0; right: 0; height: 55%;
-  background: linear-gradient(180deg, #b0cce0 0%, #cce0ee 100%);
+  background: linear-gradient(180deg, #7ab8e0 0%, #b8daf0 100%);
 }
 .demo-cloud {
   position: absolute; background: rgba(255,255,255,.82); border-radius: 20px;
@@ -1000,6 +1000,74 @@ svg { display:block; }
   margin: 10px 0 0; flex-shrink: 0;
   border-top: 1px solid rgba(74,82,24,.1);
   border-bottom: 1px solid rgba(74,82,24,.1);
-  transition: background 2s;
+}
+/* フィールド内の背景を滑らかに遷移させる */
+.home-field > *, .demo-field > * {
+  transition: background 1.5s ease, opacity 1s ease;
 }
 /* demo-*クラスをそのまま流用するので追加CSSは最小限 */
+
+/* ── iOSズーム防止（font-size 16px以上） ── */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+/* ── トースト幅を画面に収める ── */
+.toast {
+  max-width: calc(100vw - 32px) !important;
+  text-align: center;
+  word-break: keep-all;
+}
+
+/* ── 結果画面のシェアテキスト文字色を改善 ── */
+.share-text {
+  color: var(--text-main) !important;
+  opacity: 0.75;
+}
+
+/* ── 作業開始前UI（フィールド＋大タイマー） ── */
+#work-start-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+#work-idle-field {
+  width: 100%; height: 160px;
+  position: relative; overflow: hidden;
+  flex-shrink: 0;
+}
+.work-idle-timer-btn {
+  background: none; border: none; cursor: pointer;
+  padding: 20px 0 12px;
+  width: 100%; display: flex; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.work-idle-timer-ring {
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  border: 4px solid rgba(74,82,24,.2);
+  background: rgba(255,252,240,.6);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  box-shadow: 0 4px 24px rgba(74,82,24,.1);
+  transition: transform .15s, box-shadow .15s;
+}
+.work-idle-timer-btn:active .work-idle-timer-ring {
+  transform: scale(.96);
+  box-shadow: 0 2px 12px rgba(74,82,24,.15);
+}
+.work-idle-timer-time {
+  font-size: 48px; font-weight: 800;
+  font-family: 'Bebas Neue', monospace;
+  color: var(--khaki2); letter-spacing: .04em;
+  line-height: 1;
+}
+.work-idle-timer-label {
+  font-size: 13px; font-weight: 700;
+  color: var(--khaki1); margin-top: 6px;
+  letter-spacing: .04em;
+}
+.work-idle-timer-sub {
+  font-size: 10px; color: var(--text-muted);
+  letter-spacing: .1em; margin-top: 2px;
+}
