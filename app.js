@@ -391,11 +391,14 @@ function startHomeFieldAnim() {
   if (homeAnimId) { cancelAnimationFrame(homeAnimId); homeAnimId = null; }
   clearTimeout(homeZzzTimer);
 
-  // まずキャラを非表示にしてから判定（雨時に一瞬歩くのを防ぐ）
+  // フィールド全体を最初は不可視（天気確定後に表示してちらつき防止）
+  const field = qs('#home-field');
+  if (field) field.style.opacity = '0';
+
   const img = qs('#home-char-img');
   if (img) img.src = CHAR_IMG_STAND;
   const c = qs('#home-char');
-  if (c) { c.style.left = '92%'; c.style.display = 'none'; }  // 最初は隠す
+  if (c) { c.style.left = '92%'; c.style.display = 'none'; }
   const sh = qs('#home-shadow');
   if (sh) { sh.style.left = '92%'; sh.style.display = 'none'; }
   const m = qs('#home-mowed');
@@ -405,13 +408,47 @@ function startHomeFieldAnim() {
 
   homePos = 92; homeDir = -1; homeMinR = 92; homeMaxR = 92;
 
-  // 星・雨を生成
   _buildFieldStars('home-stars');
   _buildFieldRain('home-rain');
 
-  // シーン適用（天気API結果を待ってからキャラ表示）
+  // まず時間帯シーンを適用（天気API前）
   const sceneName = detectDemoScene();
-  _applyFieldScene(sceneName, 'home');
+
+  // 天気API結果を待ってから最終シーンを決定・表示
+  _resolveWeatherAndApply(sceneName, 'home', () => {
+    // 完了後にフェードイン
+    if (field) { field.style.transition = 'opacity .6s'; field.style.opacity = '1'; }
+  });
+}
+
+// 天気APIを取得してからシーンを適用する関数
+function _resolveWeatherAndApply(baseScene, prefix, onDone) {
+  const isDemo = prefix === 'demo-special';
+
+  const apply = (scene) => {
+    if (isDemo) {
+      if (onDone) onDone(scene);
+    } else {
+      _applyFieldSceneNoWeather(scene, prefix);
+      if (onDone) onDone();
+    }
+  };
+
+  if (!navigator.geolocation) { apply(baseScene); return; }
+
+  const timeout = setTimeout(() => apply(baseScene), 3000);
+
+  navigator.geolocation.getCurrentPosition(pos => {
+    const { latitude: lat, longitude: lon } = pos.coords;
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weathercode&timezone=auto`)
+      .then(r => r.json())
+      .then(d => {
+        clearTimeout(timeout);
+        const scene = (d.current?.weathercode >= 51) ? 'rain' : baseScene;
+        apply(scene);
+      })
+      .catch(() => { clearTimeout(timeout); apply(baseScene); });
+  }, () => { clearTimeout(timeout); apply(baseScene); }, { timeout: 2500 });
 }
 
 function _buildFieldStars(id) {
@@ -438,7 +475,23 @@ function _buildFieldRain(id) {
   }
 }
 
+// 天気API込みのシーン適用（デモ画面用）
 function _applyFieldScene(sceneName, prefix) {
+  _applyFieldSceneNoWeather(sceneName, prefix);
+
+  // デモ画面の場合のみ天気APIで後から上書き
+  if (prefix === 'demo' && navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&current=weathercode&timezone=auto`)
+        .then(r => r.json()).then(d => {
+          if (d.current?.weathercode >= 51) _applyFieldSceneNoWeather('rain', prefix);
+        }).catch(() => {});
+    }, () => {}, { timeout: 3000 });
+  }
+}
+
+// 天気APIなしのシーン適用（home用・デモ用共通）
+function _applyFieldSceneNoWeather(sceneName, prefix) {
   const sc = DEMO_SCENES[sceneName];
   if (!sc) return;
   const $ = id => qs(`#${prefix}-${id}`);
@@ -455,17 +508,6 @@ function _applyFieldScene(sceneName, prefix) {
   const rain = $('rain'); if (rain) rain.style.opacity = sc.isRain ? 1 : 0;
   const badge = $('time-badge'); if (badge) badge.textContent = sc.label;
 
-  // ホーム画面のフィールドも天気API連動
-  if (navigator.geolocation && prefix === 'home') {
-    navigator.geolocation.getCurrentPosition(pos => {
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&current=weathercode&timezone=auto`)
-        .then(r => r.json()).then(d => {
-          if (d.current?.weathercode >= 51) _applyFieldScene('rain', prefix);
-        }).catch(() => {});
-    }, () => {});
-  }
-
-  // キャラ
   if (sc.canWork) {
     _startFieldWalk(prefix);
   } else {
@@ -699,13 +741,16 @@ function startDemoAnim() {
   if (demoAnimId) { cancelAnimationFrame(demoAnimId); demoAnimId = null; }
   clearTimeout(demoZzzTimer);
 
-  // キャラ画像・位置を先にセット
+  // フィールドを最初は不可視
+  const field = qs('#demo-field');
+  if (field) field.style.opacity = '0';
+
   const img = qs('#demo-img');
   if (img) img.src = CHAR_IMG_STAND;
   const c = qs('#demo-char');
-  if (c) { c.style.left = '92%'; c.style.display = ''; c.className = 'demo-char'; }
+  if (c) { c.style.left = '92%'; c.style.display = 'none'; c.className = 'demo-char'; }
   const sh = qs('#demo-shadow');
-  if (sh) { sh.style.left = '92%'; sh.style.display = ''; }
+  if (sh) { sh.style.left = '92%'; sh.style.display = 'none'; }
 
   const m = qs('#demo-mowed'); if (m) { m.style.left = '100%'; m.style.width = '0%'; }
   const zzz = qs('#demo-zzz'); if (zzz) zzz.className = 'demo-zzz';
@@ -714,22 +759,12 @@ function startDemoAnim() {
   buildDemoRain();
 
   const sceneName = detectDemoScene();
-  applyDemoScene(DEMO_SCENES[sceneName]);
 
-  // 天気APIで雨判定
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(pos => {
-      const { latitude: lat, longitude: lon } = pos.coords;
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weathercode&timezone=auto`)
-        .then(r => r.json())
-        .then(d => {
-          if (d.current?.weathercode >= 51) {
-            stopDemoWalk(false, false);
-            applyDemoScene(DEMO_SCENES.rain);
-          }
-        }).catch(() => {});
-    }, () => {});
-  }
+  // 天気確定後にシーン適用→フェードイン
+  _resolveWeatherAndApply(sceneName, 'demo-special', (finalScene) => {
+    applyDemoScene(DEMO_SCENES[finalScene]);
+    if (field) { field.style.transition = 'opacity .6s'; field.style.opacity = '1'; }
+  });
 }
 
 function stopDemoAnim() {
