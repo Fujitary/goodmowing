@@ -391,23 +391,25 @@ function startHomeFieldAnim() {
   if (homeAnimId) { cancelAnimationFrame(homeAnimId); homeAnimId = null; }
   clearTimeout(homeZzzTimer);
 
-  // ID名をhome-*に差し替えてデモと同じシーンを適用
+  // まずキャラを非表示にしてから判定（雨時に一瞬歩くのを防ぐ）
   const img = qs('#home-char-img');
   if (img) img.src = CHAR_IMG_STAND;
   const c = qs('#home-char');
-  if (c) { c.style.left = '92%'; c.style.display = ''; }
+  if (c) { c.style.left = '92%'; c.style.display = 'none'; }  // 最初は隠す
   const sh = qs('#home-shadow');
-  if (sh) { sh.style.left = '92%'; }
+  if (sh) { sh.style.left = '92%'; sh.style.display = 'none'; }
   const m = qs('#home-mowed');
   if (m) { m.style.left = '100%'; m.style.width = '0%'; }
   const zzz = qs('#home-zzz');
   if (zzz) zzz.className = 'demo-zzz';
 
+  homePos = 92; homeDir = -1; homeMinR = 92; homeMaxR = 92;
+
   // 星・雨を生成
   _buildFieldStars('home-stars');
   _buildFieldRain('home-rain');
 
-  // シーン適用（IDをhome-*に変えて）
+  // シーン適用（天気API結果を待ってからキャラ表示）
   const sceneName = detectDemoScene();
   _applyFieldScene(sceneName, 'home');
 }
