@@ -1,5 +1,5 @@
 /* 草刈りトラッカー Service Worker */
-const CACHE = 'kusagari-v4';
+const CACHE = 'kusagari-v5';
 const ASSETS = [
   './index.html',
   './style.css',
