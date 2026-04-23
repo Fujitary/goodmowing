@@ -366,7 +366,10 @@ function navigate(screen) {
   if (el) el.classList.add('active');
   const nb = document.getElementById(`nav-${screen}`);
   if (nb) nb.classList.add('active');
-  // デモ画面ではナビを隠す
+  // デモ画面を完全に隠す（z-index:1000で他画面を覆うため明示的にdisplay制御）
+  const demoEl = document.getElementById('screen-demo');
+  if (demoEl) demoEl.style.display = screen === 'demo' ? 'flex' : 'none';
+  // ナビ
   const nav = document.getElementById('bottom-nav');
   if (nav) nav.style.display = screen === 'demo' ? 'none' : '';
 
