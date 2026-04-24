@@ -1071,3 +1071,15 @@ input, textarea, select {
   font-size: 10px; color: var(--text-muted);
   letter-spacing: .1em; margin-top: 2px;
 }
+
+/* ── モーダル上下ボタン（2:1横並び） ── */
+.modal-action-row {
+  display: flex; gap: 8px; margin-bottom: 12px;
+}
+.modal-begin-btn {
+  flex: 2; height: 52px; font-size: 17px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.modal-cancel-btn {
+  flex: 1; height: 52px; font-size: 15px;
+}

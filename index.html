@@ -398,9 +398,9 @@
     </div>
 
     <!-- Share text -->
-    <div style="margin:0 16px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:rgba(255,255,255,.32);text-transform:uppercase;margin-bottom:7px">シェアテキスト / Share Text</div>
-      <div id="share-text-preview" style="font-size:12px;color:rgba(255,255,255,.65);line-height:1.6;"></div>
+    <div style="margin:0 16px 12px;background:rgba(255,255,255,.92);border-radius:14px;padding:12px 14px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:rgba(80,90,40,.6);text-transform:uppercase;margin-bottom:7px">シェアテキスト / Share Text</div>
+      <div id="share-text-preview" style="font-size:13px;color:rgba(50,60,20,.85);line-height:1.7;"></div>
     </div>
 
     <div class="share-actions">
@@ -796,6 +796,15 @@
       <div class="modal-handle"></div>
       <div class="modal-title">作業を開始 / Start Work</div>
 
+      <!-- 上部ボタン（2:1レイアウト） -->
+      <div class="modal-action-row">
+        <button class="btn-primary modal-begin-btn" onclick="startWork()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          作業開始
+        </button>
+        <button class="btn-secondary modal-cancel-btn" id="modal-start-close-top">キャンセル</button>
+      </div>
+
       <div class="start-form-grid">
 
         <!-- ① 機材カテゴリ -->
@@ -865,12 +874,13 @@
 
       </div><!-- /form-grid -->
 
-      <div style="margin-top:16px;display:flex;flex-direction:column;gap:9px">
-        <button class="btn-primary" onclick="startWork()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="22" height="22"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          作業開始！ / Let's Go!
+      <!-- 下部ボタン（2:1レイアウト） -->
+      <div class="modal-action-row" style="margin-top:16px">
+        <button class="btn-primary modal-begin-btn" onclick="startWork()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          作業開始！
         </button>
-        <button class="btn-secondary" id="modal-start-close">キャンセル / Cancel</button>
+        <button class="btn-secondary modal-cancel-btn" id="modal-start-close">キャンセル</button>
       </div>
     </div>
   </div><!-- /modal-start -->

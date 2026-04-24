@@ -167,12 +167,12 @@ const EQUIP = {
 
 // 刈払い機：メーカー別モデル一覧
 const KARI_MAKERS = {
-  orec:      { label: 'オーレック',    labelEn: 'OREC' },
-  kyoritsu:  { label: '共立(やまびこ)', labelEn: 'Kyoritsu' },
+  makita:    { label: 'マキタ',        labelEn: 'Makita' },
   shindaiwa: { label: 'シンダイワ',    labelEn: 'Shindaiwa' },
+  kyoritsu:  { label: '共立(やまびこ)', labelEn: 'Kyoritsu' },
+  orec:      { label: 'オーレック',    labelEn: 'OREC' },
   honda:     { label: 'Honda',         labelEn: 'Honda' },
   kubota:    { label: 'クボタ',        labelEn: 'Kubota' },
-  makita:    { label: 'マキタ',        labelEn: 'Makita' },
   husq:      { label: 'ハスクバーナ',  labelEn: 'Husqvarna' },
   other:     { label: 'その他',        labelEn: 'Other' },
 };
@@ -497,7 +497,7 @@ function _applyFieldSceneNoWeather(sceneName, prefix) {
   const ground = $('ground'); if (ground) ground.style.background = sc.ground;
   const gt = $('ground-top'); if (gt) gt.style.background = sc.groundTop;
   const sun = $('sun');
-  if (sun) { sun.style.opacity = sc.sunOpacity; sun.style.top = sc.sunTop; if (sc.sunColor) sun.style.background = sc.sunColor; }
+  if (sun) { sun.style.opacity = sc.sunOpacity; sun.style.top = sc.sunTop; sun.style.background = sc.sunColor || 'radial-gradient(circle,#ffe566,#ffbb00)'; }
   [`${prefix}-cloud1`, `${prefix}-cloud2`].forEach(id => {
     const c = qs('#' + id); if (c) c.style.opacity = sc.cloudOpacity;
   });
@@ -530,8 +530,9 @@ function _startFieldWalk(prefix) {
     const s = qs(`#${prefix}-shadow`); if (s) s.style.left = homePos + '%';
     homeMinR = Math.min(homeMinR, homePos);
     homeMaxR = Math.max(homeMaxR, homePos);
-    const mL = homeMinR <= 8 ? 0 : Math.max(homeMinR - 5, 0);
-    const mR = homeMaxR >= 88 ? 100 : Math.min(homeMaxR + 5, 100);
+    // キャラが通った範囲（足元含む）の草の色を変える
+    const mL = Math.max(homeMinR - 4, 0);
+    const mR = Math.min(homeMaxR + 4, 100);
     const mo = qs(`#${prefix}-mowed`);
     if (mo) { mo.style.left = mL + '%'; mo.style.width = (mR - mL) + '%'; }
     if (Math.random() < 0.15) _spawnFieldParticle(prefix);
@@ -635,7 +636,7 @@ function applyDemoScene(sc) {
 
   // 太陽
   const sun = qs('#demo-sun');
-  if (sun) { sun.style.opacity = sc.sunOpacity; sun.style.top = sc.sunTop; if (sc.sunColor) sun.style.background = sc.sunColor; }
+  if (sun) { sun.style.opacity = sc.sunOpacity; sun.style.top = sc.sunTop; sun.style.background = sc.sunColor || 'radial-gradient(circle,#ffe566,#ffbb00)'; }
 
   // 雲
   ['demo-cloud1','demo-cloud2'].forEach(id => {
@@ -689,8 +690,8 @@ function startDemoWalk() {
     if (sh) sh.style.left = demoPos + '%';
     demoMinR = Math.min(demoMinR, demoPos);
     demoMaxR = Math.max(demoMaxR, demoPos);
-    const mL = demoMinR <= 8  ? 0   : Math.max(demoMinR - 5, 0);
-    const mR = demoMaxR >= 88 ? 100 : Math.min(demoMaxR + 5, 100);
+    const mL = Math.max(demoMinR - 4, 0);
+    const mR = Math.min(demoMaxR + 4, 100);
     const m  = qs('#demo-mowed');
     if (m) { m.style.left = mL + '%'; m.style.width = (mR - mL) + '%'; }
     if (Math.random() < 0.18) spawnDemoParticle();
@@ -947,13 +948,15 @@ function closeStartModal() { qs('#modal-start').classList.remove('open'); }
 
 function renderStartModal() {
   const profile = DB.profile();
-  state.equipment   = profile.defaultEquip   || 'kari';
-  state.kariMaker   = profile.defaultKariMaker || 'orec';
-  state.kariModel   = profile.defaultKariModel || 'WM716';
-  state.spiderModel = profile.defaultSpider  || 'SP851';
-  state.hammerModel = profile.defaultHammer  || 'HRC662';
-  state.terrain     = 'flat';
-  state.bladeType   = 'chip255';
+  // 前回の作業設定を引き継ぐ（localStorageから）
+  const last = JSON.parse(localStorage.getItem('kt_last_settings') || '{}');
+  state.equipment   = last.equipment   || profile.defaultEquip   || 'kari';
+  state.kariMaker   = last.kariMaker   || profile.defaultKariMaker || 'makita';
+  state.kariModel   = last.kariModel   || profile.defaultKariModel || '';
+  state.spiderModel = last.spiderModel || profile.defaultSpider  || 'SP851';
+  state.hammerModel = last.hammerModel || profile.defaultHammer  || 'HRC662';
+  state.terrain     = last.terrain     || 'flat';
+  state.bladeType   = last.bladeType   || 'chip255';
   state.modelBladeW  = getModelBladeW();
 
   updateEquipUI();
@@ -1206,7 +1209,17 @@ function updateSafetyHint() {
 }
 
 function startWork() {
-  // 作業場所は保存時に設定するためここでは不要
+  // 今回の設定を次回のためにlocalStorageに保存
+  localStorage.setItem('kt_last_settings', JSON.stringify({
+    equipment:   state.equipment,
+    kariMaker:   state.kariMaker,
+    kariModel:   state.kariModel,
+    spiderModel: state.spiderModel,
+    hammerModel: state.hammerModel,
+    terrain:     state.terrain,
+    bladeType:   state.bladeType,
+  }));
+
   state.spotName = '';
   state.targetSpotId = null;
   state.newSpotLat = null;
@@ -1458,7 +1471,7 @@ function togglePause() {
 
 function endWork() {
   if (!state.working) return;
-  if (state.elapsedSec < 60) { showToast('作業時間が短すぎます（1分以上作業してください）'); return; }
+  // 最低作業時間チェックなし
   if (!confirm('作業を終了して記録を保存しますか？')) return;
   charAnim.stop();
   localStorage.removeItem('kt_session'); // セッションクリア
@@ -2785,6 +2798,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Start modal
   qs('#btn-start-work').addEventListener('click', openStartModal);
   qs('#modal-start-close').addEventListener('click', closeStartModal);
+  qs('#modal-start-close-top')?.addEventListener('click', closeStartModal);
   qs('#modal-start').addEventListener('click', e => { if (e.target === qs('#modal-start')) closeStartModal(); });
 
   // Detail modal close
