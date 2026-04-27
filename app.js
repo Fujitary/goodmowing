@@ -2029,6 +2029,7 @@ function renderMap() {
   initLeafletMap();
   renderMapStats();
   renderCalendar();
+  renderMapSpotList();
   drawMowedPolygons();
   startLiveTracking();
   setTimeout(() => leafletMap && leafletMap.invalidateSize(), 120);
@@ -2252,6 +2253,55 @@ function renderCalendar() {
     const recs = records.filter(r => r.date.startsWith(ms));
     const cls = recs.length === 0 ? '' : recs.length >= 3 ? ' has-work heavy' : ' has-work';
     return `<div class="cal-month${cls}" title="${m}月: ${recs.length}回">${m}</div>`;
+  }).join('');
+}
+
+function renderMapSpotList() {
+  const el = qs('#map-spot-list');
+  const countEl = qs('#map-spot-list-count');
+  if (!el) return;
+
+  const spots = DB.spots();
+  const records = DB.records();
+  const now = new Date();
+
+  if (spots.length === 0) {
+    el.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px">スポットがまだありません<br><small>作業記録から場所を登録できます</small></div>`;
+    if (countEl) countEl.textContent = '';
+    return;
+  }
+
+  if (countEl) countEl.textContent = `${spots.length}件`;
+
+  // 最終作業日でソート
+  const sorted = [...spots].sort((a, b) => {
+    const la = records.filter(r => r.spotId === a.id).sort((x,y) => y.date.localeCompare(x.date))[0]?.date || '';
+    const lb = records.filter(r => r.spotId === b.id).sort((x,y) => y.date.localeCompare(x.date))[0]?.date || '';
+    return lb.localeCompare(la);
+  });
+
+  el.innerHTML = sorted.map(s => {
+    const recs = records.filter(r => r.spotId === s.id);
+    const last = recs.sort((a,b) => b.date.localeCompare(a.date))[0];
+    const totalArea = recs.reduce((sum, r) => sum + (r.area || 0), 0);
+    const daysSince = last ? Math.floor((now - new Date(last.date)) / 86400000) : null;
+    const hasLoc = s.lat && s.lon;
+
+    return `<div class="map-spot-item" onclick="${hasLoc ? `flyToSpot('${s.id}')` : 'void(0)'}" style="cursor:${hasLoc ? 'pointer' : 'default'}">
+      <div class="map-spot-color" style="background:${s.color}"></div>
+      <div class="map-spot-body">
+        <div class="map-spot-name">${escHtml(s.name)}</div>
+        <div class="map-spot-meta">
+          ${recs.length}回 ／ 累計${(totalArea/100).toFixed(1)}a
+          ${daysSince !== null ? ` ／ ${daysSince === 0 ? '今日' : daysSince + '日前'}` : ''}
+        </div>
+      </div>
+      <div class="map-spot-action">
+        ${hasLoc
+          ? `<span style="font-size:18px">📍</span>`
+          : `<span style="font-size:11px;color:var(--text-muted)">位置<br>未登録</span>`}
+      </div>
+    </div>`;
   }).join('');
 }
 
@@ -2921,10 +2971,57 @@ function showToast(msg) {
 /* ─────────────────────────────────────
    INIT
 ───────────────────────────────────── */
+
+/* ─────────────────────────────────────
+   アップデートバナー
+───────────────────────────────────── */
+let _pendingWorker = null;
+
+function showUpdateBanner(worker) {
+  _pendingWorker = worker;
+  const banner = document.getElementById('update-banner');
+  if (banner) {
+    banner.style.display = 'block';
+    // アニメーション
+    banner.style.opacity = '0';
+    banner.style.transition = 'opacity .4s';
+    setTimeout(() => { banner.style.opacity = '1'; }, 50);
+  }
+}
+
+function applyUpdate() {
+  if (_pendingWorker) {
+    _pendingWorker.postMessage('skipWaiting');
+  } else {
+    location.reload();
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  // PWA
+  // PWA - Service Worker登録・アップデート検知
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      // 新しいSWが待機中の場合（既にインストール済み）
+      if (reg.waiting) {
+        showUpdateBanner(reg.waiting);
+        return;
+      }
+      // 新しいSWが見つかった場合
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdateBanner(newWorker);
+          }
+        });
+      });
+    }).catch(() => {});
+
+    // SW更新後にページをリロード
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) { refreshing = true; location.reload(); }
+    });
   }
 
   // キャラクター初期化（1回だけ）
