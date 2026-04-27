@@ -875,9 +875,11 @@ function renderHome() {
   const monthRecs = records.filter(r => r.date.startsWith(monthStr));
 
   // Stats strip
-  const totalArea = monthRecs.reduce((a, r) => a + r.area, 0);
-  const totalKcal = monthRecs.reduce((a, r) => a + r.calories, 0);
-  qs('#stat-month-area').innerHTML = `${(totalArea/100).toFixed(1)}<span class="ast-u">a</span>`;
+  const totalArea = monthRecs.reduce((a, r) => a + (r.area || 0), 0);
+  const totalKcal = monthRecs.reduce((a, r) => a + (r.calories || 0), 0);
+  // 面積が0でも作業回数にはカウント（GPS未取得の記録も含む）
+  const areaStr = totalArea > 0 ? `${(totalArea/100).toFixed(1)}` : '0.0';
+  qs('#stat-month-area').innerHTML = `${areaStr}<span class="ast-u">a</span>`;
   qs('#stat-month-count').innerHTML = `${monthRecs.length}<span class="ast-u">回</span>`;
   qs('#stat-month-kcal').innerHTML  = `${totalKcal.toLocaleString()}<span class="ast-u">kcal</span>`;
 
