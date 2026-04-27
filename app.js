@@ -587,10 +587,10 @@ let demoZzzTimer = null;
 
 // 時間帯・シーン定義
 const DEMO_SCENES = {
-  dawn:    { label:'🌅 夜明け', sky:'linear-gradient(180deg,#2a1a4a 0%,#c04040 40%,#f07020 70%,#f0c060 100%)', bg:'#f0e8d0', ground:'linear-gradient(180deg,#7aaa38 0%,#4a7820 100%)', groundTop:'#8abe48', sunTop:'38%', sunOpacity:.7, sunColor:'radial-gradient(circle,#ff9040,#ff5020)', cloudOpacity:.7, canWork:true,  isNight:false, isRain:false },
+  dawn:    { label:'🌅 夜明け', sky:'linear-gradient(180deg,#2a1a4a 0%,#c04040 40%,#f07020 70%,#f0c060 100%)', bg:'#f0e8d0', ground:'linear-gradient(180deg,#7aaa38 0%,#4a7820 100%)', groundTop:'#8abe48', sunTop:'28%', sunOpacity:.8, sunColor:'radial-gradient(circle,#ff9040,#ff5020)', cloudOpacity:.7, canWork:true,  isNight:false, isRain:false },
   morning: { label:'🌤 朝',    sky:'linear-gradient(180deg,#7ab8e0 0%,#b8daf0 100%)', bg:'#f0ead0', ground:'linear-gradient(180deg,#7aaa38 0%,#4a7820 100%)', groundTop:'#8abe48', sunTop:'12%', sunOpacity:1,  sunColor:'radial-gradient(circle,#ffe566,#ffbb00)', cloudOpacity:.85, canWork:true,  isNight:false, isRain:false },
   noon:    { label:'☀️ 昼間',  sky:'linear-gradient(180deg,#5aaae0 0%,#90c8f0 100%)', bg:'#f0ead0', ground:'linear-gradient(180deg,#78aa38 0%,#4a7820 100%)', groundTop:'#8abe48', sunTop:'8%',  sunOpacity:1,  sunColor:'radial-gradient(circle,#fff566,#ffd000)', cloudOpacity:.85, canWork:true,  isNight:false, isRain:false },
-  evening: { label:'🌇 夕暮れ',sky:'linear-gradient(180deg,#2a3060 0%,#c04820 40%,#f07030 70%,#f8c040 100%)', bg:'#f0dfc0', ground:'linear-gradient(180deg,#6a9030 0%,#3a5818 100%)', groundTop:'#7aaa38', sunTop:'42%', sunOpacity:.8, sunColor:'radial-gradient(circle,#ff8030,#ff4010)', cloudOpacity:.7, canWork:true,  isNight:false, isRain:false },
+  evening: { label:'🌇 夕暮れ',sky:'linear-gradient(180deg,#2a3060 0%,#c04820 40%,#f07030 70%,#f8c040 100%)', bg:'#f0dfc0', ground:'linear-gradient(180deg,#6a9030 0%,#3a5818 100%)', groundTop:'#7aaa38', sunTop:'32%', sunOpacity:.9, sunColor:'radial-gradient(circle,#ff8030,#ff4010)', cloudOpacity:.7, canWork:true,  isNight:false, isRain:false },
   night:   { label:'🌙 夜',    sky:'linear-gradient(180deg,#080818 0%,#101830 60%,#182040 100%)', bg:'#1a1e28', ground:'linear-gradient(180deg,#3a5820 0%,#223010 100%)', groundTop:'#4a7030', sunTop:'15%', sunOpacity:0,  sunColor:'',  cloudOpacity:.3, canWork:false, isNight:true,  isRain:false },
   rain:    { label:'🌧 雨',    sky:'linear-gradient(180deg,#3a4050 0%,#5a6070 100%)', bg:'#e0ddd0', ground:'linear-gradient(180deg,#5a8830 0%,#3a5820 100%)', groundTop:'#6a9838', sunTop:'15%', sunOpacity:0,  sunColor:'',  cloudOpacity:.95, canWork:false, isNight:false, isRain:true },
 };
@@ -814,6 +814,59 @@ function checkShowDemo() {
 /* ─────────────────────────────────────
    HOME
 ───────────────────────────────────── */
+
+/* ─────────────────────────────────────
+   ホーム画面のログイン状態バナー
+───────────────────────────────────── */
+function updateHomeAuthBanner() {
+  const user = window._fbUser;
+  const banner   = qs('#home-login-banner');
+  const userCard = qs('#home-user-card');
+  if (!banner || !userCard) return;
+
+  if (user) {
+    banner.style.display = 'none';
+    userCard.style.display = 'flex';
+    const p = DB.profile();
+    const nameEl  = qs('#home-user-name');
+    const subEl   = qs('#home-user-sub');
+    const avatar  = qs('#home-user-avatar');
+    if (nameEl) nameEl.textContent = p.nickname || user.displayName || 'ユーザー';
+    if (subEl)  subEl.textContent  = user.email || 'ランキング参加中';
+    if (avatar) {
+      avatar.src = user.photoURL || '';
+      avatar.style.display = user.photoURL ? '' : 'none';
+    }
+  } else {
+    banner.style.display = '';
+    userCard.style.display = 'none';
+  }
+}
+
+/* ─────────────────────────────────────
+   初回ログイン設定モーダル
+───────────────────────────────────── */
+function openFirstSetup(user) {
+  const modal = qs('#modal-first-setup');
+  if (!modal) return;
+  // Googleの表示名をニックネームの初期値に
+  const nickEl = qs('#setup-nickname');
+  if (nickEl) nickEl.value = user.displayName || '';
+  modal.classList.add('open');
+}
+
+function saveFirstSetup() {
+  const nickname = qs('#setup-nickname')?.value.trim() || '';
+  const weight   = parseFloat(qs('#setup-weight')?.value) || 65;
+  const p = DB.profile();
+  p.nickname = nickname;
+  p.weight   = weight;
+  DB.saveProfile(p);
+  localStorage.setItem('kt_setup_done', '1');
+  qs('#modal-first-setup')?.classList.remove('open');
+  updateHomeAuthBanner();
+  showToast(`✓ ようこそ、${nickname || 'ユーザー'}さん！`);
+}
 function renderHome() {
   const records = DB.records();
   const profile = DB.profile();
@@ -833,6 +886,9 @@ function renderHome() {
 
   // ホームフィールドアニメーション（デモと同じシーン）
   startHomeFieldAnim();
+
+  // ログイン状態バナー更新
+  updateHomeAuthBanner();
 
   // Recent records
   const list = qs('#home-record-list');
@@ -1377,6 +1433,26 @@ function tickTimer() {
   updateWorkMetrics();
   // 10秒ごとにセッション状態を保存（バックグラウンド対応）
   if (state.elapsedSec % 10 === 0) saveSessionState();
+
+  // 6時間で強制終了
+  if (state.elapsedSec >= 6 * 3600) {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    alert('⚠️ 作業開始から6時間が経過しました。\n自動的に作業を終了します。\n（終了ボタンの押し忘れ防止）');
+    endWork();
+    return;
+  }
+
+  // 3・4・5時間の節目で確認ダイアログ
+  const CHECK_SECS = [3 * 3600, 4 * 3600, 5 * 3600];
+  if (CHECK_SECS.includes(state.elapsedSec)) {
+    const h = state.elapsedSec / 3600;
+    const cont = confirm(
+      `⏰ 作業開始から${h}時間が経過しました。\n` +
+      `まだ作業中ですか？\n\n` +
+      `「OK」→ 続ける\n「キャンセル」→ 作業を終了する`
+    );
+    if (!cont) { endWork(); }
+  }
 }
 
 function updateTimerDisplay() {
@@ -1674,10 +1750,13 @@ function renderResultSpotSelector() {
   if (!el) return;
   el.innerHTML = spots.map(s =>
     `<div class="spot-option${state.targetSpotId === s.id ? ' selected' : ''}"
-      data-id="${s.id}" onclick="selectResultSpot('${s.id}')"
-      style="display:flex;align-items:center;gap:8px">
-      <div style="width:10px;height:10px;border-radius:50%;background:${s.color};flex-shrink:0"></div>
-      ${escHtml(s.name)}
+      data-id="${s.id}"
+      style="display:flex;align-items:center;gap:6px;justify-content:space-between;padding-right:4px">
+      <div onclick="selectResultSpot('${s.id}')" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+        <div style="width:10px;height:10px;border-radius:50%;background:${s.color};flex-shrink:0"></div>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(s.name)}</span>
+      </div>
+      ${s.lat && s.lon ? `<button onclick="event.stopPropagation();flyToSpot('${s.id}')" style="background:none;border:1px solid rgba(74,82,24,.25);border-radius:8px;padding:3px 8px;font-size:11px;color:var(--khaki2);cursor:pointer;flex-shrink:0;white-space:nowrap">🗺 地図</button>` : ''}
     </div>`
   ).join('');
 }
@@ -1778,6 +1857,40 @@ function saveAndGoHome() {
   const records = DB.records();
   const idx = records.findIndex(rec => rec.id === r.id);
   if (idx >= 0) { records[idx] = r; DB.set('records', records); }
+
+  // ── 同日・同スポット統合チェック ──
+  if (r.spotId) {
+    const sameDaySpot = records.filter(rec =>
+      rec.id !== r.id &&
+      rec.date === r.date &&
+      rec.spotId === r.spotId
+    );
+    if (sameDaySpot.length > 0) {
+      const doMerge = confirm(
+        `「${r.spotName}」での本日の記録が${sameDaySpot.length}件あります。\n統合しますか？\n\n統合すると面積・時間・カロリーが合算されます。`
+      );
+      if (doMerge) {
+        // 統合：すべての記録を合算して1件に
+        const allRecs = [r, ...sameDaySpot];
+        const merged = {
+          ...r,
+          area:         allRecs.reduce((s, rec) => s + (rec.area || 0), 0),
+          calories:     allRecs.reduce((s, rec) => s + (rec.calories || 0), 0),
+          workDuration: allRecs.reduce((s, rec) => s + (rec.workDuration || 0), 0),
+          gpsPoints:    allRecs.flatMap(rec => rec.gpsPoints || []),
+          mergedIds:    allRecs.map(rec => rec.id),
+          mergedCount:  allRecs.length,
+        };
+        // 古い記録を削除して統合記録を保存
+        const kept = records.filter(rec => !allRecs.find(a => a.id === rec.id));
+        kept.push(merged);
+        DB.set('records', kept);
+        showToast(`✅ ${allRecs.length}件の記録を統合しました`);
+        navigate('home');
+        return;
+      }
+    }
+  }
 
   navigate('home');
   showToast('✓ 記録を保存しました！');
@@ -1881,6 +1994,35 @@ function initLeafletMap() {
   leafletMap.on('click', () => {});
 }
 
+
+/* ─────────────────────────────────────
+   地図をスポットへ移動
+───────────────────────────────────── */
+function flyToSpot(spotId) {
+  const spot = DB.spots().find(s => s.id === spotId);
+  if (!spot || !spot.lat || !spot.lon) {
+    showToast('⚠ この場所の位置情報がまだ登録されていません');
+    return;
+  }
+  navigate('map');
+  // 地図が初期化されるのを待ってから移動
+  setTimeout(() => {
+    if (leafletMap) {
+      leafletMap.flyTo([spot.lat, spot.lon], 17, { duration: 1.2 });
+      // スポットのポップアップを開く
+      setTimeout(() => {
+        leafletMap.eachLayer(layer => {
+          if (layer.getLatLng && layer.getPopup) {
+            const ll = layer.getLatLng();
+            if (Math.abs(ll.lat - spot.lat) < 0.0001 && Math.abs(ll.lng - spot.lon) < 0.0001) {
+              layer.openPopup();
+            }
+          }
+        });
+      }, 1400);
+    }
+  }, 300);
+}
 function renderMap() {
   initLeafletMap();
   renderMapStats();
@@ -2290,8 +2432,14 @@ function onAuthStateChange(user) {
       localStorage.setItem('kt_demo_shown', '1');
       stopDemoAnim();
       navigate('home');
-      showToast(`✓ ようこそ、${user.displayName || 'ユーザー'}さん！`);
+      // 初回ログイン時はプロフィール設定モーダルを開く
+      if (!localStorage.getItem('kt_setup_done')) {
+        setTimeout(() => openFirstSetup(user), 500);
+      } else {
+        showToast(`✓ ようこそ、${user.displayName || 'ユーザー'}さん！`);
+      }
     }
+    updateHomeAuthBanner();
     // ニックネームが未設定ならGoogle表示名を初期値に
     const p = DB.profile();
     if (!p.nickname) {
@@ -2342,11 +2490,31 @@ async function syncNicknameToFirestore(nickname) {
 /* ─────────────────────────────────────
    RANKING
 ───────────────────────────────────── */
+
+/* ─────────────────────────────────────
+   週の開始・終了日を取得（月曜始まり）
+───────────────────────────────────── */
+function getWeekRange(date = new Date()) {
+  const d = new Date(date);
+  const day = d.getDay(); // 0=日, 1=月...
+  const diff = day === 0 ? -6 : 1 - day; // 月曜に調整
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diff);
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  return {
+    start: dateStr(monday),
+    end:   dateStr(sunday),
+    label: `${monday.getMonth()+1}/${monday.getDate()}（月）〜${sunday.getMonth()+1}/${sunday.getDate()}（日）`
+  };
+}
 function renderRanking() {
   const now = new Date();
-  const todayStr = dateStr(now);
+  const week = getWeekRange(now);
   const el = qs('#ranking-date');
-  if (el) el.textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  if (el) el.textContent = `今週 ${week.label}`;
 
   // ログイン状態によってバナー切替
   const user = window._fbUser;
@@ -2354,19 +2522,22 @@ function renderRanking() {
   const myCard   = qs('#my-rank-card');
   if (banner) banner.classList.toggle('hidden', !!user);
 
-  // 今日の自分の最高記録を表示
+  // 今週の自分の合計面積を表示
   if (user) {
-    const todayRecs = DB.records().filter(r => r.date === todayStr);
-    const best = todayRecs.sort((a,b) => b.area - a.area)[0];
-    if (best && myCard) {
+    const weekRecs = DB.records().filter(r => r.date >= week.start && r.date <= week.end);
+    const totalArea = weekRecs.reduce((s, r) => s + (r.area || 0), 0);
+    const totalKcal = weekRecs.reduce((s, r) => s + (r.calories || 0), 0);
+    const totalSec  = weekRecs.reduce((s, r) => s + (r.workDuration || 0), 0);
+    const best = weekRecs.sort((a,b) => b.area - a.area)[0];
+    if (weekRecs.length > 0 && myCard) {
       myCard.classList.remove('hidden');
       const p = DB.profile();
-      const h = Math.floor(best.workDuration/3600), m = Math.floor((best.workDuration%3600)/60);
+      const h = Math.floor(totalSec/3600), m = Math.floor((totalSec%3600)/60);
       qs('#my-rank-name').textContent  = p.nickname || user.displayName || 'あなた';
-      qs('#my-rank-stats').textContent = `${(best.area/100).toFixed(1)}a ／ ${h>0?`${h}時間${m}分`:`${m}分`} ／ ${best.calories}kcal`;
+      qs('#my-rank-stats').textContent = `今週 ${(totalArea/100).toFixed(1)}a ／ ${h>0?`${h}時間${m}分`:`${m}分`} ／ ${totalKcal}kcal`;
       qs('#my-rank-pos').textContent   = '—';
       // 公開済みか確認
-      checkPublished(best);
+      if (best) checkPublished(best);
     } else if (myCard) {
       myCard.classList.add('hidden');
     }
@@ -2392,22 +2563,37 @@ async function loadRanking() {
   }
 
   try {
-    const todayStr = dateStr(new Date());
+    const week = getWeekRange(new Date());
+    // 週単位：start〜endの範囲でクエリ
     const q = fb.query(
       fb.collection(fb.db, 'rankings'),
-      fb.where('date', '==', todayStr),
+      fb.where('date', '>=', week.start),
+      fb.where('date', '<=', week.end),
       fb.where('public', '==', true),
+      fb.orderBy('date', 'desc'),
       fb.orderBy('area', 'desc'),
-      fb.limit(50)
+      fb.limit(200)
     );
     const snap = await fb.getDocs(q);
-    const docs = [];
-    snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+    const rawDocs = [];
+    snap.forEach(d => rawDocs.push({ id: d.id, ...d.data() }));
 
-    if (countEl) countEl.textContent = `${docs.length}件`;
+    // 同一ユーザーの週合計を集計
+    const userMap = {};
+    rawDocs.forEach(r => {
+      if (!userMap[r.uid]) {
+        userMap[r.uid] = { ...r, area: 0, duration: 0, count: 0 };
+      }
+      userMap[r.uid].area     += r.area || 0;
+      userMap[r.uid].duration += r.duration || 0;
+      userMap[r.uid].count    += 1;
+    });
+    const docs = Object.values(userMap).sort((a, b) => b.area - a.area);
+
+    if (countEl) countEl.textContent = `${docs.length}人`;
 
     if (docs.length === 0) {
-      listEl.innerHTML = `<div class="ranking-empty">🌿 今日はまだ記録がありません<br>最初の一刈りを登録しよう！</div>`;
+      listEl.innerHTML = `<div class="ranking-empty">🌿 今週はまだ記録がありません<br>最初の一刈りを登録しよう！</div>`;
       return;
     }
 
@@ -2430,8 +2616,7 @@ async function loadRanking() {
         <div class="rank-body">
           <div class="rank-name">${escHtml(r.nickname || '名無し')}${isMe ? ' 👈' : ''}</div>
           <div class="rank-meta">
-            <span>${te.icon}${te.label}</span>
-            <span>${eq.label}</span>
+            <span>📅 ${r.count}回</span>
             <span>⏱ ${timeStr}</span>
             ${r.spotName ? `<span>📍${escHtml(r.spotName)}</span>` : ''}
           </div>
@@ -2462,7 +2647,9 @@ async function checkPublished(record) {
   const btn  = qs('#btn-publish');
   if (!fb || !user || !btn) return;
   try {
-    const docRef = fb.doc(fb.db, 'rankings', `${user.uid}_${record.date}`);
+    const week = getWeekRange(new Date());
+    const weekId = week.start; // 週の月曜日をキーに
+    const docRef = fb.doc(fb.db, 'rankings', `${user.uid}_${weekId}`);
     const snap   = await fb.getDoc(docRef);
     if (snap.exists()) {
       btn.textContent = '✓ 公開済み';
@@ -2766,12 +2953,34 @@ document.addEventListener('DOMContentLoaded', () => {
       checkShowDemo();
     }
   } else {
-    const resume = confirm(
-      '前回の作業が途中です。\n作業を再開しますか？\n\n' +
-      `経過時間: ${Math.floor(state.elapsedSec/60)}分${state.elapsedSec%60}秒`
-    );
+    const elapsedMin = Math.floor(state.elapsedSec / 60);
+    const elapsedH   = Math.floor(elapsedMin / 60);
+    const elapsedM   = elapsedMin % 60;
+    const elapsedStr = elapsedH > 0 ? `${elapsedH}時間${elapsedM}分` : `${elapsedMin}分${state.elapsedSec % 60}秒`;
+
+    // 6時間超え → 強制終了
+    if (state.elapsedSec > 6 * 3600) {
+      alert(`⚠️ 作業開始から${elapsedStr}が経過しています。\n自動的に作業を終了します。`);
+      localStorage.removeItem('kt_session');
+      state.working = false;
+      checkShowDemo();
+      return;
+    }
+
+    // 3時間超え → 強い警告付きダイアログ
+    let message;
+    if (state.elapsedSec > 3 * 3600) {
+      message = `⚠️ 作業開始から${elapsedStr}が経過しています。\n終了ボタンを押し忘れていませんか？\n\n「OK」→ 作業を続ける\n「キャンセル」→ 終了する`;
+    } else {
+      message = `前回の作業が途中です。\n経過時間: ${elapsedStr}\n\n作業を再開しますか？`;
+    }
+
+    const resume = confirm(message);
     if (resume) {
       navigate('work');
+      const sa = qs('#work-start-area'); if (sa) sa.style.display = 'none';
+      const wa = qs('#work-active-area'); if (wa) wa.style.display = '';
+      charAnim.init();
       renderWorkScreen();
       charAnim.reset();
       if (!state.paused) {
@@ -2779,14 +2988,26 @@ document.addEventListener('DOMContentLoaded', () => {
         startTimerLoop();
       } else {
         charAnim.pause();
-        qs('#btn-pause').innerHTML = '▶ 再開';
+        const pb = qs('#btn-pause');
+        if (pb) pb.innerHTML = '▶ 再開';
       }
+      updateTimerDisplay();
+      updateWorkMetrics();
       startGPS();
       showToast('✓ 作業を再開しました');
     } else {
-      // 破棄
-      localStorage.removeItem('kt_session');
-      state.working = false;
+      // 破棄（3時間超えの場合はキャンセル=終了）
+      if (state.elapsedSec > 3 * 3600) {
+        // 記録として保存してから終了
+        state.working = false;
+        localStorage.removeItem('kt_session');
+        showToast('作業を終了しました');
+        checkShowDemo();
+      } else {
+        localStorage.removeItem('kt_session');
+        state.working = false;
+        checkShowDemo();
+      }
     }
   }
 
