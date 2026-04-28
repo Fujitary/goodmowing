@@ -385,6 +385,10 @@
     <div class="result-header">
       <div class="result-congrats">✨ おつかれさまでした！ / Great work!</div>
       <div class="result-title">作業完了！</div>
+      <!-- ガッツポーズキャラ -->
+      <div style="text-align:center;margin:-8px 0 4px">
+        <img id="result-char-guts" src="" alt="キャラ" style="height:96px;width:auto;image-rendering:pixelated;filter:drop-shadow(0 4px 12px rgba(74,82,24,.2))">
+      </div>
     </div>
 
     <div class="share-card">
@@ -464,6 +468,10 @@
       <button class="btn-share-x" id="btn-share-x">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
         Xへシェア / Share to X
+      </button>
+      <button class="btn-insta-story" id="btn-share-story" onclick="shareToStory()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5" fill="white" stroke="none"/></svg>
+        📸 ストーリーズ用画像を作成
       </button>
       <button class="btn-secondary" id="btn-copy-share">📋 テキストをコピー / Copy text</button>
       <button class="btn-primary" style="height:54px;font-size:22px" onclick="saveAndGoHome()">
