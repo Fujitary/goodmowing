@@ -1119,3 +1119,15 @@ input, textarea, select {
   letter-spacing: .02em;
 }
 .btn-insta-story:active { opacity: .85; transform: scale(.98); }
+
+/* 作業前待機キャラの影を中央に */
+#work-idle-shadow {
+  left: 20% !important;
+  transform: translateX(-50%);
+}
+
+/* 地図凡例（地図下） */
+.map-legend-below {
+  display: flex; gap: 16px; padding: 10px 16px 0;
+  flex-wrap: wrap;
+}

@@ -373,6 +373,11 @@
         作業終了 / End
       </button>
     </div>
+    <div style="text-align:center;padding:8px 0 4px">
+      <button onclick="discardWork()" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;text-decoration:underline;font-family:'Noto Sans JP',sans-serif">
+        記録せずに終了
+      </button>
+    </div>
     <div class="spacer-md"></div>
   </div><!-- /work -->
 
@@ -507,8 +512,9 @@
       </svg>
     </button>
 
-    <!-- 地図凡例 -->
-    <div class="map-legend-leaf">
+    <!-- 地図凡例（地図の下に移動） -->
+
+    <div class="map-legend-below">
       <div class="legend-item"><div class="legend-dot" style="background:#9ee840;border:1px solid #6ab82e"></div>直近7日</div>
       <div class="legend-item"><div class="legend-dot" style="background:rgba(106,184,46,.6)"></div>今月</div>
       <div class="legend-item"><div class="legend-dot" style="background:rgba(106,184,46,.25)"></div>過去</div>

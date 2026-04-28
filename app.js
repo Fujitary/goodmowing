@@ -83,9 +83,9 @@ const charAnim = {
       }
       this._applyPos();
       // 刈り取り面積（キャラが進んだ右側を刈り跡に）
-      const newMowed = Math.max(this.mowed, 100 - this.pos - 10);
+      const newMowed = Math.max(this.mowed, 100 - this.pos);
       if (newMowed > this.mowed) {
-        this.mowed = Math.min(newMowed, 90);
+        this.mowed = Math.min(newMowed, 100);
         this._setMowed(this.mowed);
         if (Math.random() < 0.25) this._spawnParticle();
       }
@@ -105,7 +105,11 @@ const charAnim = {
 
   _setMowed(pct) {
     const el = qs('#cf-mowed');
-    if (el) el.style.width = pct + '%';
+    if (el) {
+      el.style.right = '0';
+      el.style.left  = 'auto';
+      el.style.width = pct + '%';
+    }
   },
 
   _spawnParticle() {
@@ -531,8 +535,8 @@ function _startFieldWalk(prefix) {
     const s = qs(`#${prefix}-shadow`); if (s) s.style.left = homePos + '%';
     homeMinR = Math.min(homeMinR, homePos);
     homeMaxR = Math.max(homeMaxR, homePos);
-    // キャラが通った範囲（足元含む）の草の色を変える
-    const mL = Math.max(homeMinR - 4, 0);
+    // 左端0%〜キャラが通った最大位置まで草の色を変える
+    const mL = 0;
     const mR = Math.min(homeMaxR + 4, 100);
     const mo = qs(`#${prefix}-mowed`);
     if (mo) { mo.style.left = mL + '%'; mo.style.width = (mR - mL) + '%'; }
@@ -691,7 +695,7 @@ function startDemoWalk() {
     if (sh) sh.style.left = demoPos + '%';
     demoMinR = Math.min(demoMinR, demoPos);
     demoMaxR = Math.max(demoMaxR, demoPos);
-    const mL = Math.max(demoMinR - 4, 0);
+    const mL = 0;
     const mR = Math.min(demoMaxR + 4, 100);
     const m  = qs('#demo-mowed');
     if (m) { m.style.left = mL + '%'; m.style.width = (mR - mL) + '%'; }
@@ -1527,6 +1531,22 @@ function changeWorkTerrain(t) {
   updateWorkMetrics();
 }
 
+
+function discardWork() {
+  if (!confirm('作業記録を破棄して終了しますか？\nこの操作は取り消せません。')) return;
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  stopGPS();
+  charAnim.reset();
+  state.working = false;
+  state.paused  = false;
+  state.elapsedSec = 0;
+  localStorage.removeItem('kt_session');
+  // work-active-areaを隠してwork-start-areaを表示
+  const sa = qs('#work-start-area'); if (sa) sa.style.display = '';
+  const wa = qs('#work-active-area'); if (wa) wa.style.display = 'none';
+  navigate('home');
+  showToast('作業を破棄しました');
+}
 function togglePause() {
   if (!state.paused) {
     state.paused = true;
@@ -1534,8 +1554,9 @@ function togglePause() {
     qs('#btn-pause').innerHTML = '▶ 再開';
     qs('#btn-pause').style.color = 'var(--khaki2)';
     charAnim.pause();
+    stopGPS(); // 休憩中はGPSトラッキング停止
     saveSessionState();
-    showToast('⏸ 一時停止中 / Paused');
+    showToast('⏸ 休憩中・GPS一時停止');
   } else {
     state.totalPaused += (new Date() - state.pauseStart);
     state.paused = false;
@@ -1543,6 +1564,7 @@ function togglePause() {
     qs('#btn-pause').innerHTML = '⏸ 休憩';
     qs('#btn-pause').style.color = '';
     charAnim.start();
+    startGPS(); // 再開時にGPS再起動
     saveSessionState();
     showToast('▶ 作業再開 / Resumed');
   }
