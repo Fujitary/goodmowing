@@ -1814,17 +1814,47 @@ async function shareToStory() {
     ctx.fillText(c.lbl, x, 1150);
   });
 
+  // 機材・地形ラベル
+  const equipLabel = (() => {
+    const eq = EQUIP[r.equipment];
+    if (r.equipment === 'kari' && r.kariMaker && r.kariModel) {
+      const maker = KARI_MAKERS[r.kariMaker]?.label || '';
+      const models = getAllKariModels(r.kariMaker);
+      const model = models.find(m => m.id === r.kariModel);
+      return `🌀 ${maker} ${model?.label || r.kariModel}`;
+    }
+    if (r.equipment === 'spider') {
+      const m = SPIDER_MODELS_LIST?.find(x => x.id === r.spiderModel);
+      return `🕷 スパイダーモア${m ? ' ' + m.label : ''}`;
+    }
+    if (r.equipment === 'hammer') {
+      const m = HAMMER_MODELS_LIST?.find(x => x.id === r.hammerModel);
+      return `🔨 ハンマーナイフ${m ? ' ' + m.label : ''}`;
+    }
+    return eq?.label || '刈払い機';
+  })();
+  const terrainLabel = TERRAIN[r.terrain]?.label || '';
+  const terrainStars = TERRAIN[r.terrain]?.stars || '';
+
+  // 機材・地形バッジ
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.beginPath(); ctx.roundRect(80, 1175, 920, 80, 16); ctx.fill();
+  ctx.font = 'bold 38px serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${equipLabel}　／　${terrainLabel} ${terrainStars}`, 540, 1226);
+
   // ビールメッセージ
   const beers = (kcal / 200).toFixed(1);
   ctx.font = 'bold 44px serif';
   ctx.fillStyle = 'rgba(255,255,255,0.9)';
   ctx.textAlign = 'center';
-  ctx.fillText(`🍺 缶ビール約${beers}本分を消費！`, 540, 1270);
+  ctx.fillText(`🍺 缶ビール約${beers}本分を消費！`, 540, 1310);
 
   // ハッシュタグ
   ctx.font = '34px serif';
   ctx.fillStyle = 'rgba(158,232,64,0.8)';
-  ctx.fillText('#草刈りトラッカー #Goodmowing #里山', 540, 1370);
+  ctx.fillText('#草刈りトラッカー #Goodmowing #里山', 540, 1410);
 
   // 下部ロゴ
   ctx.font = '28px serif';
