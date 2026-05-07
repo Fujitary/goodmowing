@@ -910,10 +910,17 @@
           <label>地形・難易度 / Terrain</label>
           <div id="slope-hint" class="hidden" style="font-size:11px;color:var(--lime);margin-bottom:6px;padding:6px 10px;background:rgba(158,232,64,.06);border-radius:8px;border:1px solid rgba(158,232,64,.15)"></div>
           <div class="form-select-row" style="grid-template-columns:repeat(4,1fr)">
-            <button class="form-select-btn modal-terrain-btn selected" data-terrain="flat">🟢 平地<br><small>★☆☆☆ ×1.00</small></button>
-            <button class="form-select-btn modal-terrain-btn" data-terrain="gentle">🟡 緩傾斜<br><small>★★☆☆ ×1.20</small></button>
-            <button class="form-select-btn modal-terrain-btn" data-terrain="steep">🟠 急傾斜<br><small>★★★☆ ×1.45</small></button>
-            <button class="form-select-btn modal-terrain-btn" data-terrain="extreme">🔴 激急斜面<br><small>★★★★ ×1.75</small></button>
+            <button class="form-select-btn modal-terrain-btn selected" data-terrain="flat">🟢 平地<br><small>★☆☆☆</small><br><small style="color:var(--text-muted)">0〜5°</small></button>
+            <button class="form-select-btn modal-terrain-btn" data-terrain="gentle">🟡 緩傾斜<br><small>★★☆☆</small><br><small style="color:var(--text-muted)">5〜15°</small></button>
+            <button class="form-select-btn modal-terrain-btn" data-terrain="steep">🟠 急傾斜<br><small>★★★☆</small><br><small style="color:var(--text-muted)">15〜30°</small></button>
+            <button class="form-select-btn modal-terrain-btn" data-terrain="extreme">🔴 激急斜面<br><small>★★★★</small><br><small style="color:var(--text-muted)">30°以上</small></button>
+          </div>
+          <!-- 目安テーブル -->
+          <div class="terrain-guide">
+            <div class="terrain-guide-row">🟢 <span class="tg-label">平地</span><span class="tg-desc">田んぼの畦畔・道路沿い。歩いても疲れない</span></div>
+            <div class="terrain-guide-row">🟡 <span class="tg-label">緩傾斜</span><span class="tg-desc">法面・果樹園。少し前傾みになる程度</span></div>
+            <div class="terrain-guide-row">🟠 <span class="tg-label">急傾斜</span><span class="tg-desc">河川堤防・急な法面。踏ん張らないと滑る</span></div>
+            <div class="terrain-guide-row">🔴 <span class="tg-label">激急斜面</span><span class="tg-desc">ほぼ崖。安全帯が必要なレベル</span></div>
           </div>
         </div>
 

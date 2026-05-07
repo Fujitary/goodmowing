@@ -1131,3 +1131,22 @@ input, textarea, select {
   display: flex; gap: 16px; padding: 10px 16px 0;
   flex-wrap: wrap;
 }
+
+/* ── 地形選択の目安テーブル ── */
+.terrain-guide {
+  margin-top: 8px;
+  background: rgba(74,82,24,.04);
+  border: 1px solid rgba(74,82,24,.1);
+  border-radius: 10px;
+  padding: 6px 10px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.terrain-guide-row {
+  display: flex; align-items: baseline; gap: 6px;
+  font-size: 11px; line-height: 1.5;
+}
+.tg-label {
+  font-weight: 700; color: var(--khaki2);
+  white-space: nowrap; min-width: 48px;
+}
+.tg-desc { color: var(--text-muted); }
