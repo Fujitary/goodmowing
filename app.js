@@ -2559,6 +2559,17 @@ function exportCSV() {
    SETTINGS
 ───────────────────────────────────── */
 function renderSettings() {
+  // 管理者パネルの表示制御
+  const user = window._fbUser;
+  const adminPanel = qs('#admin-panel');
+  if (adminPanel) {
+    if (user?.email === ADMIN_EMAIL) {
+      renderAdminPanel();
+    } else {
+      adminPanel.style.display = 'none';
+    }
+  }
+
   const p = DB.profile();
   qs('#setting-weight').value     = p.weight || 60;
   qs('#setting-equip').value      = p.defaultEquip || 'kari';
@@ -2613,10 +2624,135 @@ async function signOutGoogle() {
   updateAuthUI();
 }
 
-function onAuthStateChange(user) {
+
+/* ─────────────────────────────────────
+   アクセス制限（許可リスト）
+───────────────────────────────────── */
+async function checkAccess(user) {
+  if (!user) return false;
+  // 管理者は常に許可
+  if (user.email === ADMIN_EMAIL) return true;
+
+  const fb = window._fb;
+  if (!fb) return true; // Firebase未接続時は許可（開発用）
+
+  try {
+    // キャッシュがあれば使用
+    if (_allowlistCache !== null) {
+      return _allowlistCache.includes(user.email);
+    }
+    // Firestoreから許可リストを取得
+    const snap = await fb.getDocs(fb.collection(fb.db, 'allowlist'));
+    _allowlistCache = snap.docs.map(d => d.data().email);
+    return _allowlistCache.includes(user.email);
+  } catch(e) {
+    console.warn('allowlist check failed:', e);
+    return true; // エラー時は許可（フォールバック）
+  }
+}
+
+async function addToAllowlist(email) {
+  const fb = window._fb;
+  if (!fb) return false;
+  try {
+    await fb.setDoc(fb.doc(fb.db, 'allowlist', email.replace('@','_at_')), {
+      email, addedAt: fb.serverTimestamp(), addedBy: window._fbUser?.email
+    });
+    _allowlistCache = null; // キャッシュクリア
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+
+async function removeFromAllowlist(email) {
+  const fb = window._fb;
+  if (!fb) return false;
+  try {
+    await fb.deleteDoc(fb.doc(fb.db, 'allowlist', email.replace('@','_at_')));
+    _allowlistCache = null;
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+
+async function loadAllowlist() {
+  const fb = window._fb;
+  if (!fb) return [];
+  try {
+    const snap = await fb.getDocs(fb.collection(fb.db, 'allowlist'));
+    return snap.docs.map(d => d.data());
+  } catch(e) { return []; }
+}
+
+async function renderAdminPanel() {
+  const el = qs('#admin-panel');
+  const listEl = qs('#admin-allowlist');
+  if (!el || !listEl) return;
+  el.style.display = '';
+  listEl.innerHTML = '<div style="color:var(--text-muted);font-size:12px">読み込み中…</div>';
+  const list = await loadAllowlist();
+  _allowlistCache = list.map(item => item.email);
+  if (list.length === 0) {
+    listEl.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px 0">まだ誰も登録されていません</div>';
+    return;
+  }
+  listEl.innerHTML = list.map(item => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(74,82,24,.08)">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--khaki2)">${escHtml(item.email)}</div>
+        <div style="font-size:10px;color:var(--text-muted)">${item.addedAt?.toDate?.()?.toLocaleDateString('ja') || ''}</div>
+      </div>
+      <button onclick="removeUser('${escHtml(item.email)}')"
+        style="background:none;border:1px solid rgba(200,50,50,.3);border-radius:8px;padding:4px 10px;font-size:11px;color:#c03030;cursor:pointer">削除</button>
+    </div>
+  `).join('');
+}
+
+async function addUser() {
+  const inp = qs('#admin-new-email');
+  if (!inp) return;
+  const email = inp.value.trim().toLowerCase();
+  if (!email || !email.includes('@')) { showToast('正しいメールアドレスを入力してください'); return; }
+  const btn = qs('#admin-add-btn');
+  if (btn) btn.disabled = true;
+  const ok = await addToAllowlist(email);
+  if (ok) {
+    inp.value = '';
+    showToast(`✅ ${email} を追加しました`);
+    renderAdminPanel();
+  } else {
+    showToast('追加に失敗しました');
+  }
+  if (btn) btn.disabled = false;
+}
+
+async function removeUser(email) {
+  if (!confirm(`${email} のアクセスを削除しますか？`)) return;
+  const ok = await removeFromAllowlist(email);
+  if (ok) { showToast(`🗑 ${email} を削除しました`); renderAdminPanel(); }
+  else showToast('削除に失敗しました');
+}
+async function onAuthStateChange(user) {
   updateAuthUI();
 
   if (user) {
+    // アクセス権チェック
+    const hasAccess = await checkAccess(user);
+    if (!hasAccess) {
+      // 許可されていないユーザー
+      stopDemoAnim();
+      qs('#screen-demo').style.display = 'flex';
+      // デモ画面に「アクセス権なし」メッセージを表示
+      const demoActions = qs('.demo-actions');
+      if (demoActions) {
+        demoActions.innerHTML = `
+          <div style="background:rgba(200,50,50,.1);border:1px solid rgba(200,50,50,.3);border-radius:14px;padding:16px;text-align:center;width:100%;margin-top:8px">
+            <div style="font-size:16px;font-weight:700;color:#c03030;margin-bottom:6px">🔒 アクセス権がありません</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">${escHtml(user.email)}<br>はアクセスが許可されていません</div>
+            <button onclick="signOutGoogle()" style="background:none;border:1px solid rgba(74,82,24,.2);border-radius:10px;padding:8px 20px;font-size:13px;color:var(--text-muted);cursor:pointer">別のアカウントでログイン</button>
+          </div>`;
+      }
+      return;
+    }
+
     // ログイン済み → 無条件でホームへ（デモ画面でも作業画面でも）
     // ただし作業中は邪魔しない
     if (!state.working) {
