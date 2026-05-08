@@ -1732,260 +1732,199 @@ async function shareToStory() {
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // ── 背景：深緑グラデーション ──
+  // 背景
   const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0,   '#1a3a08');
-  bg.addColorStop(0.5, '#2d5a12');
-  bg.addColorStop(1,   '#1a3a08');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
+  bg.addColorStop(0, '#1a3a08'); bg.addColorStop(0.5, '#2d5a12'); bg.addColorStop(1, '#1a3a08');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
-  // ── ホタル風光の粒子 ──
-  ctx.save();
-  for (let i = 0; i < 60; i++) {
-    const px = Math.random() * W;
-    const py = Math.random() * H * 0.85;
-    const pr = 2 + Math.random() * 4;
-    const alpha = 0.3 + Math.random() * 0.5;
-    const grd = ctx.createRadialGradient(px, py, 0, px, py, pr * 3);
-    grd.addColorStop(0, `rgba(200,255,100,${alpha})`);
-    grd.addColorStop(1, 'rgba(200,255,100,0)');
-    ctx.fillStyle = grd;
-    ctx.beginPath(); ctx.arc(px, py, pr * 3, 0, Math.PI * 2); ctx.fill();
+  // ホタル
+  for (let i = 0; i < 50; i++) {
+    const px=Math.random()*W,py=Math.random()*H*0.85,pr=2+Math.random()*3,alpha=0.25+Math.random()*0.4;
+    const grd=ctx.createRadialGradient(px,py,0,px,py,pr*3);
+    grd.addColorStop(0,`rgba(200,255,100,${alpha})`); grd.addColorStop(1,'rgba(200,255,100,0)');
+    ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(px,py,pr*3,0,Math.PI*2); ctx.fill();
   }
-  ctx.restore();
 
-  // ── 草原（下部） ──
-  // 草の波形
-  ctx.save();
-  const grassY = H * 0.82;
-  const grassGrd = ctx.createLinearGradient(0, grassY, 0, H);
-  grassGrd.addColorStop(0, '#5aaa20');
-  grassGrd.addColorStop(0.3, '#4a9018');
-  grassGrd.addColorStop(1, '#2a6008');
-  ctx.fillStyle = grassGrd;
-  ctx.beginPath();
-  ctx.moveTo(0, grassY + 30);
-  for (let x = 0; x <= W; x += 40) {
-    const y = grassY + Math.sin(x * 0.015) * 18 + Math.sin(x * 0.03) * 10;
-    ctx.lineTo(x, y);
-  }
-  ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
-  ctx.fill();
-  // 草の葉を描く
-  ctx.strokeStyle = '#6abe30';
-  ctx.lineWidth = 4;
-  for (let i = 0; i < 30; i++) {
-    const gx = (i / 30) * W + Math.random() * 30;
-    const gy = grassY + Math.sin(gx * 0.015) * 18 + Math.sin(gx * 0.03) * 10;
-    const gh = 40 + Math.random() * 60;
-    ctx.beginPath();
-    ctx.moveTo(gx, gy);
-    ctx.quadraticCurveTo(gx + 15, gy - gh * 0.6, gx + (Math.random()-0.5)*30, gy - gh);
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  // ── タイトル：Goodmowing ──
   ctx.textAlign = 'center';
-  // 白い輝き
-  ctx.save();
-  ctx.shadowColor = 'rgba(158,232,64,0.6)';
-  ctx.shadowBlur = 30;
-  ctx.font = 'bold 108px serif';
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText('Goodmowing', W/2, 180);
-  ctx.restore();
 
-  // サブタイトル
-  ctx.font = 'bold 56px serif';
-  ctx.fillStyle = '#9ee840';
-  ctx.fillText('草刈り日和', W/2, 260);
+  // タイトル
+  ctx.save(); ctx.shadowColor='rgba(158,232,64,0.6)'; ctx.shadowBlur=30;
+  ctx.font='bold 100px serif'; ctx.fillStyle='#ffffff'; ctx.fillText('Goodmowing',W/2,160); ctx.restore();
+  ctx.font='bold 50px serif'; ctx.fillStyle='#9ee840'; ctx.fillText('草刈り日和',W/2,230);
 
-  // 区切り装飾線
-  ctx.save();
-  ctx.strokeStyle = 'rgba(158,232,64,0.5)';
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(80, 295); ctx.lineTo(460, 295); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(620, 295); ctx.lineTo(1000, 295); ctx.stroke();
-  // ダイヤ
-  ctx.fillStyle = '#9ee840';
-  ctx.save(); ctx.translate(540, 295); ctx.rotate(Math.PI/4);
-  ctx.fillRect(-8, -8, 16, 16);
-  ctx.restore();
-  ctx.restore();
+  // 区切り線
+  ctx.strokeStyle='rgba(158,232,64,0.5)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(80,262); ctx.lineTo(440,262); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(640,262); ctx.lineTo(1000,262); ctx.stroke();
+  ctx.fillStyle='#9ee840'; ctx.save(); ctx.translate(540,262); ctx.rotate(Math.PI/4); ctx.fillRect(-7,-7,14,14); ctx.restore();
 
-  // ── 日付 ──
+  // 日付
   const d = new Date(r.date);
   const dateStr = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
-  ctx.font = '38px serif';
-  ctx.fillStyle = 'rgba(200,255,150,0.85)';
-  ctx.fillText(dateStr, W/2, 370);
+  ctx.font='36px serif'; ctx.fillStyle='rgba(200,255,150,0.85)'; ctx.fillText(dateStr,W/2,310);
 
-  // ── 「作業　記録」テキスト ──
-  ctx.font = 'bold 88px serif';
-  ctx.fillStyle = '#ffffff';
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.5)';
-  ctx.shadowBlur = 10;
-  ctx.fillText('作業', 240, 520);
-  ctx.fillText('記録', 840, 520);
-  ctx.restore();
+  // 「本日の一刈り」 ── キャラより上
+  ctx.save(); ctx.shadowColor='rgba(0,0,0,0.8)'; ctx.shadowBlur=20;
+  ctx.font='bold 80px serif'; ctx.fillStyle='#ffffff'; ctx.fillText('本日の一刈り',W/2,400); ctx.restore();
 
-  // ── キャラクター中央の光輪 ──
-  const cx = W/2, cy = 560;
-  const ringR = 200;
-  // 外側グロー
-  const glowGrd = ctx.createRadialGradient(cx, cy, ringR*0.6, cx, cy, ringR*1.3);
-  glowGrd.addColorStop(0, 'rgba(158,232,64,0.0)');
-  glowGrd.addColorStop(0.7, 'rgba(158,232,64,0.15)');
-  glowGrd.addColorStop(1, 'rgba(158,232,64,0.0)');
-  ctx.fillStyle = glowGrd;
-  ctx.beginPath(); ctx.arc(cx, cy, ringR*1.3, 0, Math.PI*2); ctx.fill();
-  // リング
-  ctx.save();
-  ctx.strokeStyle = 'rgba(158,232,64,0.7)';
-  ctx.lineWidth = 6;
-  ctx.shadowColor = '#9ee840';
-  ctx.shadowBlur = 20;
-  ctx.beginPath(); ctx.arc(cx, cy, ringR, 0, Math.PI*2); ctx.stroke();
-  ctx.restore();
-  // 葉のデコレーション
-  ['🌿','🍃','⚙️','✨'].forEach((em, i) => {
-    const angle = (i / 4) * Math.PI * 2 - Math.PI/2;
-    const ex = cx + Math.cos(angle) * (ringR + 30);
-    const ey = cy + Math.sin(angle) * (ringR + 30);
-    ctx.font = '48px serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(em, ex, ey + 16);
+  // 光輪
+  const cx=W/2, cy=580, ringR=185;
+  const glowGrd=ctx.createRadialGradient(cx,cy,ringR*0.6,cx,cy,ringR*1.3);
+  glowGrd.addColorStop(0,'rgba(158,232,64,0.0)'); glowGrd.addColorStop(0.7,'rgba(158,232,64,0.15)'); glowGrd.addColorStop(1,'rgba(158,232,64,0.0)');
+  ctx.fillStyle=glowGrd; ctx.beginPath(); ctx.arc(cx,cy,ringR*1.3,0,Math.PI*2); ctx.fill();
+  ctx.save(); ctx.strokeStyle='rgba(158,232,64,0.7)'; ctx.lineWidth=6; ctx.shadowColor='#9ee840'; ctx.shadowBlur=20;
+  ctx.beginPath(); ctx.arc(cx,cy,ringR,0,Math.PI*2); ctx.stroke(); ctx.restore();
+  ['🌿','🍃','⚙️','✨'].forEach((em,i) => {
+    const angle=(i/4)*Math.PI*2-Math.PI/2;
+    ctx.font='44px serif'; ctx.fillText(em,cx+Math.cos(angle)*(ringR+28),cy+Math.sin(angle)*(ringR+28)+14);
   });
 
-  // ── キャラクター画像 ──
+  // キャラ
   if (typeof CHAR_IMG_GUTS !== 'undefined') {
     try {
       const img = new Image();
-      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = CHAR_IMG_GUTS; });
-      const ch = 340, cw = img.width * ch / img.height;
+      await new Promise((res,rej) => { img.onload=res; img.onerror=rej; img.src=CHAR_IMG_GUTS; });
+      const ch=310, cw=img.width*ch/img.height;
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(img, W/2 - cw/2, cy - ch/2 - 20, cw, ch);
+      ctx.drawImage(img, W/2-cw/2, cy-ch/2-10, cw, ch);
     } catch(e) {}
   }
 
-  // ── 数値3つ（円形バッジ） ──
-  const mins = Math.floor((r.workDuration || 0) / 60);
-  const hrs  = Math.floor(mins / 60);
-  const mRem = mins % 60;
-  const timeStr = hrs > 0 ? `${hrs}h${mRem}m` : `${mins}`;
-  const timeUnit = hrs > 0 ? '' : '分';
-  const area  = ((r.area || 0) / 100).toFixed(1);
-  const kcal  = r.calories || 0;
+  // 数値バッジ
+  const mins = Math.floor((r.workDuration||0)/60);
+  const hrs  = Math.floor(mins/60), mRem = mins%60;
+  const timeVal = hrs > 0 ? `${hrs}h${mRem}m` : `${mins}`;
+  const area = ((r.area||0)/100).toFixed(1);
+  const kcal = r.calories || 0;
   const metrics = [
-    { val: timeStr, unit: timeUnit, lbl: '作業時間' },
-    { val: area,    unit: 'a',      lbl: '刈取面積' },
-    { val: `${kcal}`, unit: 'kcal', lbl: '消費カロリー' },
+    {val:timeVal, unit:hrs>0?'':'分', lbl:'作業時間'},
+    {val:area,    unit:'a',           lbl:'刈取面積'},
+    {val:`${kcal}`, unit:'kcal',      lbl:'消費カロリー'},
   ];
-  const metY = 1020;
+  const metY = 850;
   metrics.forEach((m, i) => {
     const mx = 180 + i * 360;
-    // 円背景
-    const circGrd = ctx.createRadialGradient(mx, metY, 0, mx, metY, 130);
-    circGrd.addColorStop(0, 'rgba(80,140,30,0.9)');
-    circGrd.addColorStop(1, 'rgba(40,80,10,0.7)');
-    ctx.fillStyle = circGrd;
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.4)';
-    ctx.shadowBlur = 20;
-    ctx.beginPath(); ctx.arc(mx, metY, 130, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
-    // リング
-    ctx.save();
-    ctx.strokeStyle = 'rgba(158,232,64,0.5)';
-    ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(mx, metY, 130, 0, Math.PI*2); ctx.stroke();
-    ctx.restore();
-    // 数値
-    ctx.textAlign = 'center';
-    ctx.font = `bold ${m.val.length > 4 ? 64 : 80}px serif`;
-    ctx.fillStyle = '#ffffff';
+    const cGrd=ctx.createRadialGradient(mx,metY,0,mx,metY,120);
+    cGrd.addColorStop(0,'rgba(80,140,30,0.92)'); cGrd.addColorStop(1,'rgba(40,80,10,0.75)');
+    ctx.fillStyle=cGrd; ctx.save(); ctx.shadowColor='rgba(0,0,0,0.5)'; ctx.shadowBlur=20;
+    ctx.beginPath(); ctx.arc(mx,metY,120,0,Math.PI*2); ctx.fill(); ctx.restore();
+    ctx.save(); ctx.strokeStyle='rgba(158,232,64,0.55)'; ctx.lineWidth=4;
+    ctx.beginPath(); ctx.arc(mx,metY,120,0,Math.PI*2); ctx.stroke(); ctx.restore();
+    ctx.font=`bold ${m.val.length>4?60:76}px serif`; ctx.fillStyle='#ffffff';
     ctx.save(); ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=8;
-    ctx.fillText(m.val, mx, metY + 24);
-    ctx.restore();
-    // 単位
-    ctx.font = 'bold 32px serif';
-    ctx.fillStyle = '#9ee840';
-    ctx.fillText(m.unit, mx, metY + 68);
-    // ラベル
-    ctx.font = '28px serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.fillText(m.lbl, mx, metY + 108);
+    ctx.fillText(m.val,mx,metY+22); ctx.restore();
+    ctx.font='bold 30px serif'; ctx.fillStyle='#9ee840'; ctx.fillText(m.unit,mx,metY+62);
+    ctx.font='26px serif'; ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.fillText(m.lbl,mx,metY+98);
   });
 
-  // ── 機材・地形ラベル ──
+  // 機材バッジ
   const equipLabel = (() => {
-    if (r.equipment === 'kari' && r.kariMaker && r.kariModel) {
-      const maker = KARI_MAKERS[r.kariMaker]?.label || '';
-      const models = getAllKariModels(r.kariMaker);
-      const model = models.find(m => m.id === r.kariModel);
-      return `${maker} ${model?.label || r.kariModel}`;
+    if (r.equipment==='kari' && r.kariMaker && r.kariModel) {
+      const maker=KARI_MAKERS[r.kariMaker]?.label||'';
+      const model=getAllKariModels(r.kariMaker).find(m=>m.id===r.kariModel);
+      return `${maker} ${model?.label||r.kariModel}`;
     }
-    if (r.equipment === 'spider') { const m = SPIDER_MODELS_LIST?.find(x => x.id === r.spiderModel); return `スパイダーモア${m?' '+m.label:''}`; }
-    if (r.equipment === 'hammer') { const m = HAMMER_MODELS_LIST?.find(x => x.id === r.hammerModel); return `ハンマーナイフ${m?' '+m.label:''}`; }
-    return EQUIP[r.equipment]?.label || '刈払い機';
+    if (r.equipment==='spider') { const m=SPIDER_MODELS_LIST?.find(x=>x.id===r.spiderModel); return `スパイダーモア${m?' '+m.label:''}`; }
+    if (r.equipment==='hammer') { const m=HAMMER_MODELS_LIST?.find(x=>x.id===r.hammerModel); return `ハンマーナイフ${m?' '+m.label:''}`; }
+    return EQUIP[r.equipment]?.label||'刈払い機';
   })();
-  const terrainLabel = TERRAIN[r.terrain]?.label || '';
-  const terrainStars = TERRAIN[r.terrain]?.stars || '';
-  const equipStr = `🔵 ${equipLabel}　／　${terrainLabel} ${terrainStars}`;
+  const terrainLabel=TERRAIN[r.terrain]?.label||'';
+  const terrainStars=TERRAIN[r.terrain]?.stars||'';
 
-  // バッジ背景
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.save(); ctx.beginPath(); ctx.roundRect(80, 1185, 920, 70, 35); ctx.fill(); ctx.restore();
-  ctx.font = 'bold 34px serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.9)';
-  ctx.textAlign = 'center';
-  ctx.fillText(equipStr, W/2, 1230);
+  ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.save();
+  ctx.beginPath(); ctx.roundRect(80,1000,920,66,33); ctx.fill(); ctx.restore();
+  ctx.font='bold 32px serif'; ctx.fillStyle='rgba(255,255,255,0.92)';
+  ctx.fillText(`🔵 ${equipLabel}　／　${terrainLabel} ${terrainStars}`,W/2,1044);
 
-  // ── 缶ビールメッセージ ──
-  const beers = (kcal / 200).toFixed(1);
-  ctx.save();
-  ctx.fillStyle = 'rgba(255,220,50,0.15)';
-  ctx.shadowColor = 'rgba(255,220,50,0.4)';
-  ctx.shadowBlur = 20;
-  ctx.beginPath(); ctx.roundRect(60, 1280, 960, 100, 20); ctx.fill();
-  ctx.restore();
-  ctx.font = 'bold 48px serif';
-  ctx.fillStyle = '#ffe050';
+  // 缶ビール
+  const beers=(kcal/200).toFixed(1);
+  ctx.save(); ctx.fillStyle='rgba(255,220,50,0.12)'; ctx.shadowColor='rgba(255,220,50,0.4)'; ctx.shadowBlur=20;
+  ctx.beginPath(); ctx.roundRect(60,1082,960,84,18); ctx.fill(); ctx.restore();
+  ctx.font='bold 42px serif'; ctx.fillStyle='#ffe050';
   ctx.save(); ctx.shadowColor='rgba(255,180,0,0.5)'; ctx.shadowBlur=15;
-  ctx.fillText(`🍺 缶ビール約${beers}本分を消費！`, W/2, 1345);
-  ctx.restore();
+  ctx.fillText(`🍺 缶ビール約${beers}本分を消費！`,W/2,1140); ctx.restore();
 
-  // ── ハッシュタグ ──
-  ctx.font = '40px serif';
-  ctx.fillStyle = 'rgba(200,255,150,0.9)';
-  ctx.fillText('#草刈りトラッカー', W/2, 1510);
-  ctx.fillText('#Goodmowing', W/2, 1560);
-  ctx.fillText('#里山', W/2, 1610);
+  // GPS軌跡地図
+  const gpsPoints = r.gpsPoints || [];
+  const mapX=50,mapY=1185,mapW=980,mapH=340;
+  ctx.fillStyle='rgba(10,30,5,0.85)'; ctx.save();
+  ctx.beginPath(); ctx.roundRect(mapX,mapY,mapW,mapH,24); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.strokeStyle='rgba(158,232,64,0.4)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.roundRect(mapX,mapY,mapW,mapH,24); ctx.stroke(); ctx.restore();
+  ctx.strokeStyle='rgba(158,232,64,0.07)'; ctx.lineWidth=1;
+  for(let gi=1;gi<6;gi++){const gy=mapY+gi*mapH/6;ctx.beginPath();ctx.moveTo(mapX+12,gy);ctx.lineTo(mapX+mapW-12,gy);ctx.stroke();}
+  for(let gi=1;gi<9;gi++){const gx=mapX+gi*mapW/9;ctx.beginPath();ctx.moveTo(gx,mapY+12);ctx.lineTo(gx,mapY+mapH-12);ctx.stroke();}
+  ctx.font='bold 28px serif'; ctx.fillStyle='rgba(158,232,64,0.7)'; ctx.textAlign='left';
+  ctx.fillText('📍 GPS軌跡マップ',mapX+20,mapY+38); ctx.textAlign='center';
 
-  // ── フッター ──
-  ctx.font = '28px serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.fillText('fujitary.github.io/goodmowing', W/2, 1840);
-  // Geminiスター
-  ctx.font = '32px serif';
-  ctx.fillText('✦', W - 60, 1880);
+  if (gpsPoints.length > 2) {
+    const lats=gpsPoints.map(p=>p.lat), lons=gpsPoints.map(p=>p.lon);
+    const minLat=Math.min(...lats), maxLat=Math.max(...lats);
+    const minLon=Math.min(...lons), maxLon=Math.max(...lons);
+    const pad=0.18, latR=(maxLat-minLat)||0.0001, lonR=(maxLon-minLon)||0.0001;
+    const da={x:mapX+20,y:mapY+50,w:mapW-40,h:mapH-70};
+    const toX=lon=>da.x+(lon-minLon)/lonR*da.w*(1-pad*2)+da.w*pad;
+    const toY=lat=>da.y+(maxLat-lat)/latR*da.h*(1-pad*2)+da.h*pad;
+    ctx.save(); ctx.fillStyle='rgba(100,200,50,0.12)';
+    ctx.beginPath(); gpsPoints.forEach((p,i)=>i===0?ctx.moveTo(toX(p.lon),toY(p.lat)):ctx.lineTo(toX(p.lon),toY(p.lat)));
+    ctx.closePath(); ctx.fill(); ctx.restore();
+    ctx.save(); ctx.shadowColor='#9ee840'; ctx.shadowBlur=16;
+    ctx.strokeStyle='rgba(158,232,64,0.35)'; ctx.lineWidth=10; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath(); gpsPoints.forEach((p,i)=>i===0?ctx.moveTo(toX(p.lon),toY(p.lat)):ctx.lineTo(toX(p.lon),toY(p.lat))); ctx.stroke();
+    ctx.strokeStyle='#b8ff60'; ctx.lineWidth=3.5; ctx.shadowBlur=8;
+    ctx.beginPath(); gpsPoints.forEach((p,i)=>i===0?ctx.moveTo(toX(p.lon),toY(p.lat)):ctx.lineTo(toX(p.lon),toY(p.lat))); ctx.stroke();
+    ctx.restore();
+    const sp=gpsPoints[0], ep=gpsPoints[gpsPoints.length-1];
+    ctx.save(); ctx.shadowColor='#4ade80'; ctx.shadowBlur=12;
+    ctx.fillStyle='#4ade80'; ctx.beginPath(); ctx.arc(toX(sp.lon),toY(sp.lat),12,0,Math.PI*2); ctx.fill(); ctx.restore();
+    ctx.fillStyle='#fff'; ctx.font='bold 16px serif'; ctx.fillText('S',toX(sp.lon),toY(sp.lat)+6);
+    ctx.save(); ctx.shadowColor='#ff6060'; ctx.shadowBlur=12;
+    ctx.fillStyle='#ff6060'; ctx.beginPath(); ctx.arc(toX(ep.lon),toY(ep.lat),12,0,Math.PI*2); ctx.fill(); ctx.restore();
+    ctx.fillStyle='#fff'; ctx.font='bold 16px serif'; ctx.fillText('G',toX(ep.lon),toY(ep.lat)+6);
+    ctx.font='bold 30px serif'; ctx.fillStyle='rgba(158,232,64,0.95)'; ctx.textAlign='right';
+    ctx.fillText(`${((r.area||0)/100).toFixed(1)}a`,mapX+mapW-20,mapY+mapH-14); ctx.textAlign='center';
+  } else {
+    ctx.font='bold 36px serif'; ctx.fillStyle='rgba(158,232,64,0.4)';
+    ctx.fillText('📍 GPS軌跡データなし',W/2,mapY+mapH/2+14);
+  }
 
-  // ── 共有 ──
+  // ハッシュタグ（白）
+  ctx.font='bold 40px serif'; ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.textAlign='center';
+  ctx.fillText('#草刈りトラッカー',W/2,1590);
+  ctx.fillText('#Goodmowing',W/2,1642);
+  ctx.fillText('#里山',W/2,1694);
+
+  // 草原
+  const grassY=H*0.895;
+  const grassGrd=ctx.createLinearGradient(0,grassY,0,H);
+  grassGrd.addColorStop(0,'#5aaa20'); grassGrd.addColorStop(0.3,'#4a9018'); grassGrd.addColorStop(1,'#2a6008');
+  ctx.fillStyle=grassGrd; ctx.beginPath(); ctx.moveTo(0,grassY+20);
+  for(let x=0;x<=W;x+=40) ctx.lineTo(x,grassY+Math.sin(x*0.015)*14+Math.sin(x*0.03)*8);
+  ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#6abe30'; ctx.lineWidth=3;
+  for(let i=0;i<25;i++){
+    const gx=(i/25)*W+Math.random()*30, gy=grassY+Math.sin(gx*0.015)*14+Math.sin(gx*0.03)*8, gh=30+Math.random()*50;
+    ctx.beginPath(); ctx.moveTo(gx,gy); ctx.quadraticCurveTo(gx+12,gy-gh*0.6,gx+(Math.random()-0.5)*24,gy-gh); ctx.stroke();
+  }
+
+  // フッター
+  ctx.font='26px serif'; ctx.fillStyle='rgba(255,255,255,0.45)';
+  ctx.fillText('fujitary.github.io/goodmowing',W/2,1870);
+  ctx.font='30px serif'; ctx.fillText('✦',W-55,1900);
+
+  // 共有
   canvas.toBlob(async blob => {
-    const file = new File([blob], 'goodmowing_story.png', { type: 'image/png' });
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: 'Goodmowing 草刈り完了！' }); return; }
-      catch(e) { if (e.name === 'AbortError') return; }
+    const file=new File([blob],'goodmowing_story.png',{type:'image/png'});
+    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+      try{await navigator.share({files:[file],title:'Goodmowing 草刈り完了！'});return;}
+      catch(e){if(e.name==='AbortError')return;}
     }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'goodmowing_story.png'; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='goodmowing_story.png';a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),3000);
     showToast('📸 画像を保存しました！インスタにアップしてください');
-  }, 'image/png');
+  },'image/png');
 }
 
 async function attachCurrentLocationToResult() {
