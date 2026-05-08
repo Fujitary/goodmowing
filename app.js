@@ -811,10 +811,8 @@ function skipDemo() {
 }
 
 function checkShowDemo() {
-  // ログイン済み or デモ表示済みならホームへ
+  // ログイン済みのみホームへ、未ログインは常にデモ画面
   if (window._fbUser) {
-    navigate('home');
-  } else if (localStorage.getItem('kt_demo_shown')) {
     navigate('home');
   } else {
     navigate('demo');
