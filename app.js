@@ -5,6 +5,11 @@
 
 'use strict';
 
+/* ── アクセス制限設定 ── */
+const ADMIN_EMAIL = 'f.ryota89@gmail.com';
+let _allowlistCache = null;
+
+
 /* ─────────────────────────────────────
    CHARACTER ANIMATION
 ───────────────────────────────────── */
@@ -2667,7 +2672,9 @@ async function removeFromAllowlist(email) {
   const fb = window._fb;
   if (!fb) return false;
   try {
-    await fb.deleteDoc(fb.doc(fb.db, 'allowlist', email.replace('@','_at_')));
+    const delFn = fb.deleteDoc || window._fb?.deleteDoc;
+    if (!delFn) throw new Error('deleteDoc not found');
+    await delFn(fb.doc(fb.db, 'allowlist', email.replace('@','_at_')));
     _allowlistCache = null;
     return true;
   } catch(e) { console.error(e); return false; }
