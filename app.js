@@ -1725,6 +1725,116 @@ function getPosition() {
 /* ─────────────────────────────────────
    インスタストーリーズ用画像生成
 ───────────────────────────────────── */
+
+/* ─────────────────────────────────────
+   作業完了画面の描画
+───────────────────────────────────── */
+function renderResult() {
+  const r = state.lastRecord;
+  if (!r) { navigate('home'); return; }
+
+  // ガッツポーズキャラ
+  const gutsImg = qs('#result-char-guts');
+  if (gutsImg && typeof CHAR_IMG_GUTS !== 'undefined') gutsImg.src = CHAR_IMG_GUTS;
+
+  // 日付
+  const d = new Date(r.date);
+  const dow = ['SUN','MON','TUE','WED','THU','FRI','SAT'][d.getDay()];
+  const dateStr = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${dow}`;
+  qs('#result-date').textContent = dateStr;
+
+  // 場所
+  qs('#result-spot').textContent = r.spotName || '—（場所を設定してください）';
+
+  // 時間
+  const totalSec = r.workDuration || 0;
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const timeEl = qs('#result-time-val');
+  const unitEl = qs('#result-time-unit');
+  if (timeEl) timeEl.textContent = h > 0 ? `${h}時間${m}分` : `${m}分`;
+  if (unitEl) unitEl.textContent = h > 0 ? '' : 'min';
+
+  // 面積・カロリー
+  const areaEl  = qs('#result-area-val');
+  const kcalEl  = qs('#result-kcal-val');
+  if (areaEl)  areaEl.textContent  = ((r.area || 0) / 100).toFixed(1);
+  if (kcalEl)  kcalEl.textContent  = r.calories || 0;
+
+  // バッジ（地形・機材）
+  const badgeEl = qs('#result-badges');
+  if (badgeEl) {
+    const te = TERRAIN[r.terrain] || {};
+    const eq = EQUIP[r.equipment] || {};
+    let equip = eq.label || '—';
+    if (r.equipment === 'kari' && r.kariMaker) {
+      const maker = KARI_MAKERS[r.kariMaker]?.label || '';
+      const models = getAllKariModels(r.kariMaker);
+      const model = models.find(m => m.id === r.kariModel);
+      equip = model ? `${maker} ${model.label}` : maker;
+    }
+    badgeEl.innerHTML = `
+      <span class="badge badge-terrain">${te.icon || ''}${te.label || '—'} ${te.stars || ''}</span>
+      <span class="badge badge-equip">${equip}</span>
+      ${r.gpsEnabled ? `<span class="badge badge-gps">移動距離 ${r.gpsDist >= 1000 ? (r.gpsDist/1000).toFixed(2)+'km' : Math.round(r.gpsDist)+'m'}</span>` : ''}
+      ${r.temperature ? `<span class="badge badge-temp">${r.temperature}℃</span>` : ''}
+    `;
+  }
+
+  // 実績バッジ
+  renderResultAchievements(r);
+
+  // 缶ビール換算
+  const beerEl = qs('#result-beer');
+  if (beerEl) {
+    const kcal = r.calories || 0;
+    const beers = (kcal / 200).toFixed(1);
+    const rice  = (kcal / 250).toFixed(1);
+    beerEl.textContent = `🍺 缶ビール約${beers}本分 ／ 🍚 ご飯約${rice}杯分を消費！`;
+  }
+
+  // シェアテキスト
+  const shareEl = qs('#share-text-preview');
+  if (shareEl) {
+    const te = TERRAIN[r.terrain] || {};
+    const eq = EQUIP[r.equipment] || {};
+    const mins = Math.floor((r.workDuration||0)/60);
+    const beers = ((r.calories||0)/200).toFixed(1);
+    shareEl.textContent =
+      `今日の草刈り完了🌿 刈り面積：${((r.area||0)/100).toFixed(1)}a ／ 作業時間：${mins}分 ／ ` +
+      `消費カロリー：${r.calories||0}kcal（缶ビール${beers}本分！）` +
+      `【${te.label||''}${te.stars||''} ${eq.label||''}】` +
+      ` #作業記録 #草刈りトラッカー #里山 #真庭`;
+  }
+
+  // スポット選択を描画
+  renderResultSpotSelector();
+
+  // Xシェアボタン
+  const btnX = qs('#btn-share-x');
+  if (btnX) {
+    const te = TERRAIN[r.terrain]||{}, eq = EQUIP[r.equipment]||{};
+    const mins = Math.floor((r.workDuration||0)/60);
+    const beers = ((r.calories||0)/200).toFixed(1);
+    const text = encodeURIComponent(
+      `今日の草刈り完了🌿 刈り面積：${((r.area||0)/100).toFixed(1)}a ／ 作業時間：${mins}分 ／ ` +
+      `消費カロリー：${r.calories||0}kcal（缶ビール${beers}本分！）` +
+      `【${te.label||''}${te.stars||''} ${eq.label||''}】` +
+      ` #作業記録 #草刈りトラッカー #里山 #真庭`
+    );
+    btnX.onclick = () => window.open(`https://x.com/intent/tweet?text=${text}`, '_blank');
+  }
+
+  // コピーボタン
+  const btnCopy = qs('#btn-copy-share');
+  if (btnCopy) {
+    btnCopy.onclick = () => {
+      const text = qs('#share-text-preview')?.textContent || '';
+      navigator.clipboard.writeText(text).then(() => showToast('📋 コピーしました'));
+    };
+  }
+}
+
 async function shareToStory() {
   const r = state.lastRecord;
   if (!r) { showToast('記録がありません'); return; }
@@ -2624,6 +2734,12 @@ async function signInGoogle() {
   const fb = window._fb;
   if (!fb) { showToast('Firebase未設定です'); return; }
   try {
+    // iOSはリダイレクト方式
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    if (isIOS) {
+      await fb.signInWithRedirect(fb.auth, fb.provider);
+      return; // リダイレクト後にonAuthStateChangedが呼ばれる
+    }
     const result = await fb.signInWithPopup(fb.auth, fb.provider);
     // onAuthStateChangeで処理されるのでここでは何もしない
   } catch (e) {
