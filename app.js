@@ -147,8 +147,8 @@ const DB = {
   get(k)    { try { return JSON.parse(localStorage.getItem(this._key(k))); } catch { return null; } },
   set(k, v) { localStorage.setItem(this._key(k), JSON.stringify(v)); },
   records()       { return this.get('records') || []; },
-  saveRecord(r)   { const a = this.records(); a.unshift(r); this.set('records', a); },
-  deleteRecord(id){ this.set('records', this.records().filter(r => r.id !== id)); },
+  saveRecord(r)   { const a = this.records(); a.unshift(r); this.set('records', a); syncRecordToFirestore(r); },
+  deleteRecord(id){ this.set('records', this.records().filter(r => r.id !== id));  deleteRecordFromFirestore(id); },
   profile()       { return this.get('profile') || { name: 'ユーザー', weight: 60, defaultEquip: 'kari', defaultSpider: 'SP851' }; },
   saveProfile(p)  { this.set('profile', p); },
   spots()         { return this.get('spots') || DEFAULT_SPOTS; },
@@ -2867,6 +2867,65 @@ async function removeUser(email) {
   if (ok) { showToast(`🗑 ${email} を削除しました`); renderAdminPanel(); }
   else showToast('削除に失敗しました');
 }
+
+/* ─────────────────────────────────────
+   Firestore 記録同期
+───────────────────────────────────── */
+async function syncRecordToFirestore(record) {
+  const user = window._fbUser;
+  const fb = window._fb;
+  if (!user || !fb) return;
+  try {
+    const ref = fb.doc(fb.db, 'users', user.uid, 'records', record.id);
+    await fb.setDoc(ref, { ...record, uid: user.uid, syncedAt: fb.serverTimestamp() });
+  } catch(e) { console.warn('Firestore保存失敗:', e); }
+}
+
+async function syncRecordsFromFirestore() {
+  const user = window._fbUser;
+  const fb = window._fb;
+  if (!user || !fb) return;
+  try {
+    const q = fb.query(fb.collection(fb.db, 'users', user.uid, 'records'), fb.orderBy('date', 'desc'), fb.limit(200));
+    const snap = await fb.getDocs(q);
+    if (snap.empty) return;
+    const cloudRecords = snap.docs.map(d => { const data=d.data(); delete data.syncedAt; return data; });
+    const local = DB.records();
+    const merged = [...local];
+    cloudRecords.forEach(cr => { if (!merged.find(r => r.id === cr.id)) merged.push(cr); });
+    merged.sort((a, b) => b.date.localeCompare(a.date));
+    DB.set('records', merged);
+    if (cloudRecords.length > 0) { showToast(`☁ ${cloudRecords.length}件の記録をクラウドから同期しました`); renderHome(); }
+  } catch(e) { console.warn('Firestore読み込み失敗:', e); }
+}
+
+async function syncProfileToFirestore(profile) {
+  const user = window._fbUser;
+  const fb = window._fb;
+  if (!user || !fb) return;
+  try {
+    await fb.setDoc(fb.doc(fb.db, 'users', user.uid, 'profile', 'main'), { ...profile, uid: user.uid, updatedAt: fb.serverTimestamp() });
+  } catch(e) { console.warn('プロフィール保存失敗:', e); }
+}
+
+async function syncProfileFromFirestore() {
+  const user = window._fbUser;
+  const fb = window._fb;
+  if (!user || !fb) return;
+  try {
+    const snap = await fb.getDoc(fb.doc(fb.db, 'users', user.uid, 'profile', 'main'));
+    if (snap.exists()) { const data=snap.data(); delete data.uid; delete data.updatedAt; DB.saveProfile(data); }
+  } catch(e) { console.warn('プロフィール読み込み失敗:', e); }
+}
+
+async function deleteRecordFromFirestore(id) {
+  const user = window._fbUser;
+  const fb = window._fb;
+  if (!user || !fb) return;
+  try {
+    await fb.deleteDoc(fb.doc(fb.db, 'users', user.uid, 'records', id));
+  } catch(e) { console.warn('Firestore削除失敗:', e); }
+}
 async function onAuthStateChange(user) {
   updateAuthUI();
 
@@ -2902,6 +2961,11 @@ async function onAuthStateChange(user) {
       } else {
         showToast(`✓ ようこそ、${user.displayName || 'ユーザー'}さん！`);
       }
+      // Firestoreから記録・プロフィールを同期
+      setTimeout(async () => {
+        await syncProfileFromFirestore();
+        await syncRecordsFromFirestore();
+      }, 1000);
     }
     updateHomeAuthBanner();
     // ニックネームが未設定ならGoogle表示名を初期値に
