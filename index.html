@@ -57,6 +57,19 @@
     onAuthStateChanged, collection, addDoc, getDocs, query, where,
     orderBy, limit, doc, setDoc, getDoc, deleteDoc, serverTimestamp };
 
+  // iOSリダイレクトログイン後の結果を処理
+  getRedirectResult(auth).then(result => {
+    if (result?.user) {
+      console.log('redirect login success:', result.user.email);
+      // onAuthStateChangedが自動的に呼ばれるので追加処理不要
+    }
+  }).catch(e => {
+    console.warn('getRedirectResult error:', e.code, e.message);
+    if (e.code !== 'auth/no-auth-event') {
+      if (typeof showToast === 'function') showToast('ログインに失敗しました');
+    }
+  });
+
   // 認証状態の変化を監視
   onAuthStateChanged(auth, user => {
     window._fbUser = user || null;

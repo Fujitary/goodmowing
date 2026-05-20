@@ -3474,6 +3474,13 @@ function applyUpdate() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // iOSリダイレクトログイン後：_pendingAuthUserが溜まっていれば処理
+  if (window._pendingAuthUser !== undefined) {
+    const u = window._pendingAuthUser;
+    window._pendingAuthUser = undefined;
+    if (u) onAuthStateChange(u);
+  }
+
   // PWA - Service Worker登録・アップデート検知
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then(reg => {
