@@ -2734,12 +2734,7 @@ async function signInGoogle() {
   const fb = window._fb;
   if (!fb) { showToast('Firebase未設定です'); return; }
   try {
-    // iOSはリダイレクト方式
-    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-    if (isIOS) {
-      await fb.signInWithRedirect(fb.auth, fb.provider);
-      return; // リダイレクト後にonAuthStateChangedが呼ばれる
-    }
+    // iOS PWAではpopupのみ動作（redirectはセッションが失われる）
     const result = await fb.signInWithPopup(fb.auth, fb.provider);
     // onAuthStateChangeで処理されるのでここでは何もしない
   } catch (e) {
