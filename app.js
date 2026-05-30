@@ -2866,6 +2866,37 @@ async function removeUser(email) {
 /* ─────────────────────────────────────
    Firestore 記録同期
 ───────────────────────────────────── */
+
+/* ─────────────────────────────────────
+   localStorageのデータをFirestoreにバックアップ
+   （キャッシュクリア後のデータ復元に備える）
+───────────────────────────────────── */
+async function backupLocalToFirestore() {
+  const user = window._fbUser;
+  const fb = window._fb;
+  if (!user || !fb) return;
+
+  const records = DB.records();
+  if (records.length === 0) return;
+
+  // localStorageにある記録をFirestoreに保存（未保存のものだけ）
+  let count = 0;
+  for (const r of records) {
+    if (!r.id) continue;
+    try {
+      const ref = fb.doc(fb.db, 'users', user.uid, 'records', r.id);
+      const snap = await fb.getDoc(ref);
+      if (!snap.exists()) {
+        // Firestoreに存在しない → バックアップ
+        await fb.setDoc(ref, { ...r, uid: user.uid, syncedAt: fb.serverTimestamp() });
+        count++;
+      }
+    } catch(e) { /* 個別エラーは無視 */ }
+  }
+  if (count > 0) {
+    console.log(`☁ ${count}件をFirestoreにバックアップしました`);
+  }
+}
 async function syncRecordToFirestore(record) {
   const user = window._fbUser;
   const fb = window._fb;
@@ -2956,8 +2987,11 @@ async function onAuthStateChange(user) {
       } else {
         showToast(`✓ ようこそ、${user.displayName || 'ユーザー'}さん！`);
       }
-      // Firestoreから記録・プロフィールを同期
+      // Firestoreと双方向同期
       setTimeout(async () => {
+        // 1. まずlocalStorageのデータをFirestoreにバックアップ
+        await backupLocalToFirestore();
+        // 2. Firestoreからデータを取得してlocalStorageと統合
         await syncProfileFromFirestore();
         await syncRecordsFromFirestore();
       }, 1000);
