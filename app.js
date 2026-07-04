@@ -3051,6 +3051,8 @@ async function syncNicknameToFirestore(nickname) {
 /* ─────────────────────────────────────
    週の開始・終了日を取得（月曜始まり）
 ───────────────────────────────────── */
+let rankingWeekOffset = 0; // 0=今週、-1=先週、-2=2週前...
+
 function getWeekRange(date = new Date()) {
   const d = new Date(date);
   const day = d.getDay(); // 0=日, 1=月...
@@ -3067,11 +3069,28 @@ function getWeekRange(date = new Date()) {
     label: `${monday.getMonth()+1}/${monday.getDate()}（月）〜${sunday.getMonth()+1}/${sunday.getDate()}（日）`
   };
 }
-function renderRanking() {
+
+function changeRankingWeek(delta) {
+  rankingWeekOffset += delta;
+  // 未来週には進めない
+  if (rankingWeekOffset > 0) { rankingWeekOffset = 0; }
+  renderRanking();
+  loadRanking();
+}
+
+function getOffsetWeekRange() {
   const now = new Date();
-  const week = getWeekRange(now);
+  now.setDate(now.getDate() + rankingWeekOffset * 7);
+  return getWeekRange(now);
+}
+function renderRanking() {
+  const week = getOffsetWeekRange();
   const el = qs('#ranking-date');
-  if (el) el.textContent = `今週 ${week.label}`;
+  const isThisWeek = rankingWeekOffset === 0;
+  if (el) el.textContent = `${isThisWeek ? '今週 ' : ''}${week.label}`;
+  // 未来ボタンを今週の場合は無効化
+  const nextBtn = qs('#ranking-next-btn');
+  if (nextBtn) { nextBtn.disabled = isThisWeek; nextBtn.style.opacity = isThisWeek ? '.3' : '1'; }
 
   // ログイン状態によってバナー切替
   const user = window._fbUser;
@@ -3120,7 +3139,7 @@ async function loadRanking() {
   }
 
   try {
-    const week = getWeekRange(new Date());
+    const week = getOffsetWeekRange();
     // 週単位：start〜endの範囲でクエリ
     const q = fb.query(
       fb.collection(fb.db, 'rankings'),

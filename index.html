@@ -640,8 +640,12 @@
       </div>
 
       <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;padding-right:16px">
-        <span>本日のトップ / Today's Top <span id="ranking-count" style="font-weight:400;font-size:10px;color:var(--text-muted)"></span></span>
-        <span id="ranking-date" style="font-size:10px;color:var(--text-muted)"></span>
+        <span>ランキング <span id="ranking-count" style="font-weight:400;font-size:10px;color:var(--text-muted)"></span></span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button onclick="changeRankingWeek(-1)" style="background:none;border:1px solid rgba(74,82,24,.2);border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:14px;color:var(--khaki2)">‹</button>
+          <span id="ranking-date" style="font-size:11px;color:var(--text-muted);min-width:120px;text-align:center"></span>
+          <button onclick="changeRankingWeek(1)" id="ranking-next-btn" style="background:none;border:1px solid rgba(74,82,24,.2);border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:14px;color:var(--khaki2)">›</button>
+        </div>
       </div>
 
       <div id="ranking-list" class="ranking-list">
