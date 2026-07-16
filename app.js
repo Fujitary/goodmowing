@@ -1781,8 +1781,14 @@ function renderResult() {
     `;
   }
 
-  // 実績バッジ
-  renderResultAchievements(r);
+  // 実績バッジ（未実装のため一時的に安全化。将来Bで実装予定）
+  try {
+    if (typeof renderResultAchievements === 'function') {
+      renderResultAchievements(r);
+    }
+  } catch (e) {
+    console.warn('renderResultAchievements skipped:', e);
+  }
 
   // 缶ビール換算
   const beerEl = qs('#result-beer');
